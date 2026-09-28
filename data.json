@@ -1,0 +1,91 @@
+{
+    "site_name": "AikoCRM",
+    "contact_email": "hello@aikocrm.com",
+    "contact_phone": "+91 98765 43210",
+    "contact_address": "Tech Park, Sector 62, Noida, India",
+    "nav_links": [
+        {"url": "index.php", "label": "Home"},
+        {"url": "about.php", "label": "About"},
+        {"url": "plan.php", "label": "Pricing"},
+        {"url": "contact.php", "label": "Contact"}
+    ],
+    "features": [
+        {
+            "icon": "fa-solid fa-users",
+            "title": "Lead Management",
+            "description": "Track your leads effectively from the first point of contact to successful closure. Never let a potential customer slip through the cracks."
+        },
+        {
+            "icon": "fa-solid fa-robot",
+            "title": "Task Automation",
+            "description": "Automate repetitive tasks, assign follow-ups, and ensure your team is always focused on high-priority goals."
+        },
+        {
+            "icon": "fa-solid fa-chart-line",
+            "title": "Detailed Analytics",
+            "description": "Make data-driven decisions with real-time reports, performance metrics, and actionable insights."
+        }
+    ],
+    "core_values": [
+        {
+            "title": "Innovation",
+            "description": "Constantly pushing the boundaries of what CRM can do."
+        },
+        {
+            "title": "Simplicity",
+            "description": "Making powerful features accessible to everyone."
+        },
+        {
+            "title": "Reliability",
+            "description": "A platform you can trust, day in and day out."
+        }
+    ],
+    "pricing_plans": [
+        {
+            "name": "Trial",
+            "price": "Free",
+            "duration": "14-Days Full Access",
+            "subtitle": "",
+            "features": [
+                "Up to 5 Employees",
+                "Basic Lead Management",
+                "Standard Support"
+            ],
+            "button_text": "Start Free Trial",
+            "button_class": "btn-outline",
+            "button_url": "signup.php",
+            "highlight": false
+        },
+        {
+            "name": "Professional",
+            "price": "₹1999",
+            "duration": "/mo",
+            "subtitle": "For Growing Teams",
+            "features": [
+                "Unlimited Employees",
+                "Advanced Analytics",
+                "Task Automation",
+                "Priority 24/7 Support"
+            ],
+            "button_text": "Get Started",
+            "button_class": "btn-primary",
+            "button_url": "signup.php",
+            "highlight": true
+        },
+        {
+            "name": "Enterprise",
+            "price": "Custom",
+            "duration": "",
+            "subtitle": "Tailored Solutions",
+            "features": [
+                "Custom Integrations",
+                "Dedicated Account Manager",
+                "On-premise Deployment"
+            ],
+            "button_text": "Contact Sales",
+            "button_class": "btn-outline",
+            "button_url": "contact.php",
+            "highlight": false
+        }
+    ]
+}

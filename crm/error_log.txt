@@ -1,0 +1,42 @@
+Array
+(
+    [error] => SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '1-INV-5' for key 'company_id'
+    [line] => 44
+    [file] => /home/u138788005/domains/aikocrm.com/public_html/crm/core/Database.php
+)
+
+Array
+(
+    [error] => SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '1-INV-10' for key 'company_id'
+    [line] => 44
+    [file] => /home/u138788005/domains/aikocrm.com/public_html/crm/core/Database.php
+)
+
+Array
+(
+    [error] => SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '1-INV-15' for key 'company_id'
+    [line] => 44
+    [file] => /home/u138788005/domains/aikocrm.com/public_html/crm/core/Database.php
+)
+
+Array
+(
+    [error] => SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '1-INV-47' for key 'company_id'
+    [line] => 44
+    [file] => /home/u138788005/domains/aikocrm.com/public_html/crm/core/Database.php
+)
+
+Array
+(
+    [error] => SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '1-INV-78' for key 'company_id'
+    [line] => 44
+    [file] => /home/u138788005/domains/aikocrm.com/public_html/crm/core/Database.php
+)
+
+Array
+(
+    [error] => SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '1-INV-78' for key 'company_id'
+    [line] => 44
+    [file] => /home/u138788005/domains/aikocrm.com/public_html/crm/core/Database.php
+)
+

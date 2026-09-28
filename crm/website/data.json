@@ -1,0 +1,41 @@
+{
+    "pricing_plans": [
+        {
+            "name": "Free",
+            "price": "0",
+            "duration_value": "7",
+            "duration_unit": "Days",
+            "duration": "\/ 7 Days",
+            "features": [],
+            "button_text": "Sign Up",
+            "button_class": "btn-primary",
+            "button_url": "signup.php"
+        },
+        {
+            "name": "Basic",
+            "price": "199",
+            "duration_value": "1",
+            "duration_unit": "Months",
+            "duration": "\/ 1 Months",
+            "features": [],
+            "button_text": "Sign Up",
+            "button_class": "btn-primary",
+            "button_url": "signup.php"
+        },
+        {
+            "name": "Pro",
+            "price": "2199",
+            "duration_value": "1",
+            "duration_unit": "Years",
+            "duration": "\/ 1 Years",
+            "features": [],
+            "button_text": "Sign Up",
+            "button_class": "btn-primary",
+            "button_url": "signup.php"
+        }
+    ],
+    "site_name": "AIKOCRM ",
+    "contact_email": "info@aikocrm.com",
+    "contact_phone": "+91 94732 98317",
+    "contact_address": "Patna, Bihar, India"
+}
