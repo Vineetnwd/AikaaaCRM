@@ -24,29 +24,29 @@ if ($isExecutive) {
 // Fetch all leads with their selected requirements
 $leads = $db->fetchAll(
     "SELECT l.id, l.name, l.mobile, l.requirement,
-            (SELECT GROUP_CONCAT(r.name SEPARATOR ', ') 
-             FROM requirements r 
-             JOIN lead_requirements lr ON r.id = lr.requirement_id 
-             WHERE lr.lead_id = l.id) as requirement_names
-     FROM leads l 
-     WHERE l.company_id = ?" . $leadFilterSql . "
-     ORDER BY l.name",
+                (SELECT GROUP_CONCAT(r.name SEPARATOR ', ') 
+                FROM requirements r 
+                JOIN lead_requirements lr ON r.id = lr.requirement_id 
+                WHERE lr.lead_id = l.id) as requirement_names
+        FROM leads l 
+        WHERE l.company_id = ?" . $leadFilterSql . "
+        ORDER BY l.name",
     $leadFilterParams
 );
 
 // Fetch IDs of leads that already have a quotation or invoice
 $occupied_leads = $db->fetchAll(
     "SELECT DISTINCT lead_id FROM quotations WHERE company_id = ? AND lead_id IS NOT NULL
-     UNION
-     SELECT DISTINCT lead_id FROM invoices WHERE company_id = ? AND lead_id IS NOT NULL",
+        UNION
+        SELECT DISTINCT lead_id FROM invoices WHERE company_id = ? AND lead_id IS NOT NULL",
     [$company_id, $company_id]
 );
 $occupied_ids = array_column($occupied_leads, 'lead_id');
 
 // Fetch Quotations with full lead detail and Pagination
-$page = max(1, (int)($_GET['page'] ?? 1));
+$page = max(1, (int) ($_GET['page'] ?? 1));
 $limit_val = $_GET['limit'] ?? '15';
-$limit = ($limit_val === 'all') ? 1000000 : max(1, (int)$limit_val);
+$limit = ($limit_val === 'all') ? 1000000 : max(1, (int) $limit_val);
 $offset = ($page - 1) * $limit;
 
 $whereClause = "q.company_id = ?";
@@ -71,17 +71,17 @@ $total_items = $db->fetchOne($countQuery, $params)['total'] ?? 0;
 $total_pages = max(1, ceil($total_items / $limit));
 
 $sql = "
-    SELECT q.*, l.name as client_name, l.mobile as client_mobile, l.email as client_email, l.requirement as client_requirement,
-           (SELECT GROUP_CONCAT(r.name SEPARATOR ', ') 
-            FROM requirements r 
-            JOIN lead_requirements lr ON r.id = lr.requirement_id 
-            WHERE lr.lead_id = l.id) as client_services
-    FROM quotations q
-    LEFT JOIN leads l ON q.lead_id = l.id
-    WHERE $whereClause
-    ORDER BY q.created_at DESC
-    LIMIT $limit OFFSET $offset
-";
+        SELECT q.*, l.name as client_name, l.mobile as client_mobile, l.email as client_email, l.requirement as client_requirement,
+            (SELECT GROUP_CONCAT(r.name SEPARATOR ', ') 
+                FROM requirements r 
+                JOIN lead_requirements lr ON r.id = lr.requirement_id 
+                WHERE lr.lead_id = l.id) as client_services
+        FROM quotations q
+        LEFT JOIN leads l ON q.lead_id = l.id
+        WHERE $whereClause
+        ORDER BY q.created_at DESC
+        LIMIT $limit OFFSET $offset
+    ";
 
 $quotations = $db->fetchAll($sql, $params);
 
@@ -195,6 +195,57 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
             background: #eff6ff;
             color: var(--primary);
         }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 1rem;
+            }
+
+            .header-actions {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+
+            .header-actions form {
+                flex: 1 1 100%;
+            }
+
+            .header-actions form input {
+                width: 100% !important;
+            }
+
+            .header-actions .btn {
+                flex: 1;
+                justify-content: center;
+            }
+
+            #bulkActionsContainer {
+                flex-wrap: wrap;
+            }
+
+            #bulkActionsContainer .btn {
+                flex: 1 1 100%;
+                justify-content: center;
+            }
+
+            .pagination-container {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 1rem;
+            }
+
+            .action-buttons {
+                flex-wrap: wrap;
+            }
+        }
     </style>
 </head>
 
@@ -211,10 +262,13 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
                         proposals to prospects</p>
                 </div>
                 <div class="header-actions" style="display: flex; align-items: center; gap: 0.75rem;">
-                    <form method="GET" style="position:relative; margin:0;" onsubmit="event.preventDefault(); window.location.href = '?search=' + encodeURIComponent(this.search.value)">
+                    <form method="GET" style="position:relative; margin:0;"
+                        onsubmit="event.preventDefault(); window.location.href = '?search=' + encodeURIComponent(this.search.value)">
                         <i class="fas fa-search"
                             style="position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); font-size: 0.75rem; color:#94a3b8;"></i>
-                        <input type="text" name="search" id="quoSearch" value="<?= htmlspecialchars($_GET['search'] ?? '') ?>" placeholder="Search quotations..." class="form-input"
+                        <input type="text" name="search" id="quoSearch"
+                            value="<?= htmlspecialchars($_GET['search'] ?? '') ?>" placeholder="Search quotations..."
+                            class="form-input"
                             style="padding-left: 2.25rem; width: 240px; font-size: 0.75rem; height: 36px; margin:0;">
                     </form>
                     <button class="btn btn-ghost" onclick="openExportModal()"
@@ -230,140 +284,150 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
 
             <div class="card" style="padding: 0; overflow: hidden;">
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem;">
-                    <div id="bulkActionsContainer" style="display: none; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                        <button onclick="exportSelectedQuotationsXLSX()" class="btn btn-ghost" style="padding: 0.5rem 1rem; border: 1.5px solid #10b981; color: #047857; background: #ecfdf5; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:6px; font-size: 0.8rem; font-weight:700;">
-                            <i class="fas fa-file-excel" style="color: #10b981;"></i> Export XLSX (<span id="bulkExportCount">0</span>)
+                    <div id="bulkActionsContainer"
+                        style="display: none; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <button onclick="exportSelectedQuotationsXLSX()" class="btn btn-ghost"
+                            style="padding: 0.5rem 1rem; border: 1.5px solid #10b981; color: #047857; background: #ecfdf5; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:6px; font-size: 0.8rem; font-weight:700;">
+                            <i class="fas fa-file-excel" style="color: #10b981;"></i> Export XLSX (<span
+                                id="bulkExportCount">0</span>)
                         </button>
-                        <button onclick="sendBulkWhatsApp()" class="btn btn-primary" style="padding: 0.5rem 1rem; background: #25d366; color: white; border:none; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; font-size: 0.8rem;">
+                        <button onclick="sendBulkWhatsApp()" class="btn btn-primary"
+                            style="padding: 0.5rem 1rem; background: #25d366; color: white; border:none; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; font-size: 0.8rem;">
                             <i class="fab fa-whatsapp"></i> Bulk WhatsApp (<span id="bulkCount">0</span>)
                         </button>
-                        <button onclick="sendBulkEmail()" class="btn btn-primary" style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border:none; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; font-size: 0.8rem;">
+                        <button onclick="sendBulkEmail()" class="btn btn-primary"
+                            style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border:none; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; font-size: 0.8rem;">
                             <i class="fas fa-envelope"></i> Bulk Email (<span id="bulkEmailCount">0</span>)
                         </button>
                     </div>
                 </div>
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background: #f8fafc; border-bottom: 1.5px solid #e2e8f0;">
-                            <th style="padding: 1rem; width: 30px;">
-                                <input type="checkbox" id="selectAllQuotations" onchange="toggleAllQuotations(this)">
-                            </th>
-                            <th
-                                style="text-align: left; padding: 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
-                                Quotation #</th>
-                            <th
-                                style="text-align: left; padding: 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
-                                Client</th>
-                            <th
-                                style="text-align: left; padding: 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
-                                Services</th>
-                            <th
-                                style="text-align: left; padding: 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
-                                Total Value</th>
-                            <th
-                                style="text-align: left; padding: 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
-                                Status</th>
-                            <th
-                                style="text-align: right; padding: 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
-                                Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($quotations)): ?>
-                            <tr>
-                                <td colspan="6" style="padding: 4rem; text-align: center; color: #94a3b8;">
-                                    <i class="fas fa-file-invoice"
-                                        style="font-size: 2.5rem; margin-bottom: 1rem; display: block; opacity: 0.2;"></i>
-                                    <p style="font-size: 0.875rem; font-weight: 600;">No quotations drafted yet.</p>
-                                </td>
+                <div class="table-responsive">
+                    <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
+                        <thead>
+                            <tr style="background: #f8fafc; border-bottom: 1.5px solid #e2e8f0;">
+                                <th style="padding: 1rem; width: 30px;">
+                                    <input type="checkbox" id="selectAllQuotations"
+                                        onchange="toggleAllQuotations(this)">
+                                </th>
+                                <th
+                                    style="text-align: left; padding: 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
+                                    Quotation #</th>
+                                <th
+                                    style="text-align: left; padding: 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
+                                    Client</th>
+                                <th
+                                    style="text-align: left; padding: 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
+                                    Services</th>
+                                <th
+                                    style="text-align: left; padding: 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
+                                    Total Value</th>
+                                <th
+                                    style="text-align: left; padding: 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
+                                    Status</th>
+                                <th
+                                    style="text-align: right; padding: 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
+                                    Actions</th>
                             </tr>
-                        <?php else: ?>
-                            <?php foreach ($quotations as $q): ?>
-                                <tr style="border-bottom: 1px solid #f1f5f9; transition: all 0.2s;"
-                                    onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
-                                    <td style="padding: 1rem; text-align: center;">
-                                        <input type="checkbox" class="quotation-checkbox" value="<?= $q['id'] ?>" data-email="<?= htmlspecialchars($q['client_email'] ?? '') ?>" onchange="updateBulkActions()">
+                        </thead>
+                        <tbody>
+                            <?php if (empty($quotations)): ?>
+                                <tr>
+                                    <td colspan="6" style="padding: 4rem; text-align: center; color: #94a3b8;">
+                                        <i class="fas fa-file-invoice"
+                                            style="font-size: 2.5rem; margin-bottom: 1rem; display: block; opacity: 0.2;"></i>
+                                        <p style="font-size: 0.875rem; font-weight: 600;">No quotations drafted yet.</p>
                                     </td>
-                                    <td style="padding: 1rem; font-weight: 700; color: var(--primary); font-size: 0.875rem;">
-                                        <?= $q['quotation_number'] ?>
-                                    </td>
-                                    <td style="padding: 1rem;">
-                                        <div style="font-weight: 800; color: #1e293b; font-size: 0.875rem;">
-                                            <?= htmlspecialchars($q['client_name'] ?? '—') ?>
-                                        </div>
-                                        <?php if (!empty($q['client_mobile'])): ?>
-                                            <div style="font-size: 0.72rem; color: #64748b; font-weight:600;"><i
-                                                    class="fas fa-phone-alt"></i> <?= htmlspecialchars($q['client_mobile']) ?></div>
-                                        <?php endif; ?>
-                                        <?php if (!empty($q['client_email'])): ?>
-                                            <div style="font-size: 0.72rem; color: #64748b; font-weight:600; margin-top:2px;"><i
-                                                    class="fas fa-envelope"></i> <?= htmlspecialchars($q['client_email']) ?></div>
-                                        <?php endif; ?>
-                                        <?php if (!empty($q['client_requirement'])): ?>
-                                            <div style="font-size: 0.7rem; color: #64748b; margin-top:2px; font-style:italic;"
-                                                title="<?= htmlspecialchars($q['client_requirement']) ?>">
-                                                <i class="fas fa-comment-dots"></i>
-                                                <?= mb_strimwidth(htmlspecialchars($q['client_requirement']), 0, 40, '…') ?>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($quotations as $q): ?>
+                                    <tr style="border-bottom: 1px solid #f1f5f9; transition: all 0.2s;"
+                                        onmouseover="this.style.background='#f8fafc'"
+                                        onmouseout="this.style.background='white'">
+                                        <td style="padding: 1rem; text-align: center;">
+                                            <input type="checkbox" class="quotation-checkbox" value="<?= $q['id'] ?>"
+                                                data-email="<?= htmlspecialchars($q['client_email'] ?? '') ?>"
+                                                onchange="updateBulkActions()">
+                                        </td>
+                                        <td
+                                            style="padding: 1rem; font-weight: 700; color: var(--primary); font-size: 0.875rem;">
+                                            <?= $q['quotation_number'] ?>
+                                        </td>
+                                        <td style="padding: 1rem;">
+                                            <div style="font-weight: 800; color: #1e293b; font-size: 0.875rem;">
+                                                <?= htmlspecialchars($q['client_name'] ?? '—') ?>
                                             </div>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td style="padding: 1rem;">
-                                        <?php
-                                        $itemNames = [];
-                                        if (!empty($q['description'])) {
-                                            $items = json_decode($q['description'], true) ?: [];
-                                            $itemNames = array_column($items, 'name');
-                                        }
-
-                                        $displayServices = !empty($itemNames) ? implode(', ', $itemNames) : ($q['client_services'] ?? '');
-                                        ?>
-                                        <?php if (!empty($displayServices)): ?>
-                                            <div style="font-size: 0.75rem; color: var(--primary); font-weight:700;">
-                                                <i class="fas fa-concierge-bell"></i> <?= htmlspecialchars($displayServices) ?>
-                                            </div>
-                                        <?php else: ?>
-                                            <span style="color: #cbd5e1; font-size: 0.75rem;">—</span>
-                                        <?php endif; ?>
-                                        <div style="font-size: 0.7rem; color: #94a3b8; margin-top:4px;">
-                                            Date: <?= date('d M, Y', strtotime($q['quotation_date'])) ?>
-                                        </div>
-                                    </td>
-                                    <td style="padding: 1rem; font-weight: 800; color: #1e293b;">
-                                        ₹<?= number_format($q['total_amount'], 2) ?></td>
-                                    <td style="padding: 1rem;">
-                                        <span class="badge"
-                                            style="background: <?= $q['status'] == 'invoiced' ? '#dcfce7; color: #166534' : '#fef3c7; color: #92400e' ?>; font-size: 0.65rem; font-weight: 800; padding: 0.25rem 0.625rem; border-radius: 20px; text-transform: uppercase;">
-                                            <?= $q['status'] ?>
-                                        </span>
-                                    </td>
-                                    <td style="padding: 1rem; text-align: right;">
-                                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                                            <?php if ($q['status'] != 'invoiced'): ?>
-                                                <?php
-                                                $canManage = true;
-                                                if ($isExecutive) {
-                                                    // allow only if lead is assigned to this executive
-                                                    $leadAssignedEmp = $q['lead_id'] ? ($db->fetchOne('SELECT assigned_employee_id, assigned_to FROM leads WHERE id = ? AND company_id = ?', [$q['lead_id'], $company_id]) ?: []) : [];
-                                                    $assignedEmpId = intval($leadAssignedEmp['assigned_employee_id'] ?? 0);
-                                                    $assignedUserId = intval($leadAssignedEmp['assigned_to'] ?? 0);
-                                                    $canManage = ($assignedEmpId === ($execEmpId ?: 0) || $assignedUserId === (\Core\Auth::userId() ?: 0));
-                                                }
-                                                ?>
-                                                <?php if ($canManage): ?>
-                                                    <button onclick="toggleConvertModal(<?= $q['id'] ?>)" class="btn btn-primary"
-                                                        style="padding: 0.375rem 0.75rem; font-size: 0.7rem; height: 32px; background: #10b981; border: none;">
-                                                        <i class="fas fa-exchange-alt"></i> Convert to Invoice
-                                                    </button>
-                                                    <button onclick="editQuotation(<?= $q['id'] ?>)" class="btn btn-ghost"
-                                                        style="padding: 0.375rem 0.75rem; font-size: 0.75rem; border: 1px solid #e2e8f0; height: 32px; color: #64748b;"
-                                                        title="Edit Quotation">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                <?php else: ?>
-                                                    <!-- Executive cannot manage this quotation because lead not assigned -->
-                                                <?php endif; ?>
+                                            <?php if (!empty($q['client_mobile'])): ?>
+                                                <div style="font-size: 0.72rem; color: #64748b; font-weight:600;"><i
+                                                        class="fas fa-phone-alt"></i> <?= htmlspecialchars($q['client_mobile']) ?>
+                                                </div>
                                             <?php endif; ?>
-                                                <button onclick="openEmailModal(<?= $q['id'] ?>, '<?= htmlspecialchars($q['quotation_number'], ENT_QUOTES) ?>', '<?= htmlspecialchars($q['client_name'] ?? 'Client', ENT_QUOTES) ?>', '<?= htmlspecialchars($q['client_email'] ?? '', ENT_QUOTES) ?>')"
+                                            <?php if (!empty($q['client_email'])): ?>
+                                                <div style="font-size: 0.72rem; color: #64748b; font-weight:600; margin-top:2px;"><i
+                                                        class="fas fa-envelope"></i> <?= htmlspecialchars($q['client_email']) ?>
+                                                </div>
+                                            <?php endif; ?>
+                                            <?php if (!empty($q['client_requirement'])): ?>
+                                                <div style="font-size: 0.7rem; color: #64748b; margin-top:2px; font-style:italic;"
+                                                    title="<?= htmlspecialchars($q['client_requirement']) ?>">
+                                                    <i class="fas fa-comment-dots"></i>
+                                                    <?= mb_strimwidth(htmlspecialchars($q['client_requirement']), 0, 40, '…') ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="padding: 1rem;">
+                                            <?php
+                                            $itemNames = [];
+                                            if (!empty($q['description'])) {
+                                                $items = json_decode($q['description'], true) ?: [];
+                                                $itemNames = array_column($items, 'name');
+                                            }
+
+                                            $displayServices = !empty($itemNames) ? implode(', ', $itemNames) : ($q['client_services'] ?? '');
+                                            ?>
+                                            <?php if (!empty($displayServices)): ?>
+                                                <div style="font-size: 0.75rem; color: var(--primary); font-weight:700;">
+                                                    <i class="fas fa-concierge-bell"></i> <?= htmlspecialchars($displayServices) ?>
+                                                </div>
+                                            <?php else: ?>
+                                                <span style="color: #cbd5e1; font-size: 0.75rem;">—</span>
+                                            <?php endif; ?>
+                                            <div style="font-size: 0.7rem; color: #94a3b8; margin-top:4px;">
+                                                Date: <?= date('d M, Y', strtotime($q['quotation_date'])) ?>
+                                            </div>
+                                        </td>
+                                        <td style="padding: 1rem; font-weight: 800; color: #1e293b;">
+                                            ₹<?= number_format($q['total_amount'], 2) ?></td>
+                                        <td style="padding: 1rem;">
+                                            <span class="badge"
+                                                style="background: <?= $q['status'] == 'invoiced' ? '#dcfce7; color: #166534' : '#fef3c7; color: #92400e' ?>; font-size: 0.65rem; font-weight: 800; padding: 0.25rem 0.625rem; border-radius: 20px; text-transform: uppercase;">
+                                                <?= $q['status'] ?>
+                                            </span>
+                                        </td>
+                                        <td style="padding: 1rem; text-align: right;">
+                                            <div class="action-buttons"
+                                                style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                                <?php if ($q['status'] != 'invoiced'): ?>
+                                                    <?php
+                                                    $canManage = true;
+                                                    if ($isExecutive) {
+                                                        // allow only if lead is assigned to this executive
+                                                        $leadAssignedEmp = $q['lead_id'] ? ($db->fetchOne('SELECT assigned_employee_id, assigned_to FROM leads WHERE id = ? AND company_id = ?', [$q['lead_id'], $company_id]) ?: []) : [];
+                                                        $assignedEmpId = intval($leadAssignedEmp['assigned_employee_id'] ?? 0);
+                                                        $assignedUserId = intval($leadAssignedEmp['assigned_to'] ?? 0);
+                                                        $canManage = ($assignedEmpId === ($execEmpId ?: 0) || $assignedUserId === (\Core\Auth::userId() ?: 0));
+                                                    }
+                                                    ?>
+                                                    <?php if ($canManage): ?>
+                                                        <button onclick="toggleConvertModal(<?= $q['id'] ?>)" class="btn btn-primary"
+                                                            style="padding: 0.375rem 0.75rem; font-size: 0.7rem; height: 32px; background: #10b981; border: none; white-space: nowrap;">
+                                                            <i class="fas fa-exchange-alt"></i> Convert
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <!-- Executive cannot manage this quotation because lead not assigned -->
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+                                                <button
+                                                    onclick="openEmailModal(<?= $q['id'] ?>, '<?= htmlspecialchars($q['quotation_number'], ENT_QUOTES) ?>', '<?= htmlspecialchars($q['client_name'] ?? 'Client', ENT_QUOTES) ?>', '<?= htmlspecialchars($q['client_email'] ?? '', ENT_QUOTES) ?>')"
                                                     class="btn btn-ghost"
                                                     style="padding: 0.375rem 0.75rem; font-size: 0.75rem; border: 1px solid #e2e8f0; height: 32px; color: #3b82f6;"
                                                     title="Email Quotation">
@@ -394,66 +458,90 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
                                                 <?php endif; ?>
 
                                                 <a href="<?= APP_URL ?>/public/index.php/quotation/print?id=<?= $q['id'] ?>&print=true"
-                                                target="_blank" class="btn btn-ghost"
-                                                style="padding: 0.375rem 0.75rem; font-size: 0.75rem; border: 1px solid #e2e8f0; height: 32px;"
-                                                title="Print Quotation">
-                                                <i class="fas fa-print"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-                <?php if ($total_pages > 1): ?>
-                <div style="padding: 1rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: white;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">Showing <?= count($quotations) ?> of <?= $total_items ?> quotations</span>
-                        <form method="GET" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                            <?php foreach($_GET as $k => $v): if($k !== 'limit' && $k !== 'page'): ?>
-                                <input type="hidden" name="<?= htmlspecialchars($k) ?>" value="<?= htmlspecialchars($v) ?>">
-                            <?php endif; endforeach; ?>
-                            <select name="limit" onchange="this.form.submit()" style="padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 0.75rem; color: #475569; background: #f8fafc; cursor: pointer;">
-                                <option value="15" <?= $limit_val == '15' ? 'selected' : '' ?>>15 per page</option>
-                                <option value="25" <?= $limit_val == '25' ? 'selected' : '' ?>>25 per page</option>
-                                <option value="50" <?= $limit_val == '50' ? 'selected' : '' ?>>50 per page</option>
-                                <option value="100" <?= $limit_val == '100' ? 'selected' : '' ?>>100 per page</option>
-                                <option value="all" <?= $limit_val === 'all' ? 'selected' : '' ?>>All</option>
-                            </select>
-                        </form>
-                    </div>
-                    
-                    <?php
-                    $start_page = max(1, $page - 2);
-                    $end_page = min($total_pages, $page + 2);
-                    if ($end_page - $start_page < 4) {
-                        if ($start_page == 1) {
-                            $end_page = min($total_pages, 5);
-                        } elseif ($end_page == $total_pages) {
-                            $start_page = max(1, $total_pages - 4);
-                        }
-                    }
-                    $urlParams = "&search=" . urlencode($_GET['search'] ?? '') . "&limit=" . urlencode($limit_val);
-                    ?>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <?php if ($page > 1): ?>
-                            <a href="?page=<?= $page - 1 ?><?= $urlParams ?>" class="btn btn-ghost" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.75rem; text-decoration: none; color: #0f172a;"><i class="fas fa-chevron-left"></i></a>
-                        <?php endif; ?>
-                        
-                        <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                            <a href="?page=<?= $i ?><?= $urlParams ?>" 
-                               class="btn <?= $i == $page ? 'btn-primary' : 'btn-ghost' ?>" 
-                               style="padding: 0.5rem 0.8rem; border: 1px solid <?= $i == $page ? 'var(--primary)' : '#e2e8f0' ?>; border-radius: 6px; font-size: 0.75rem; text-decoration: none; color: <?= $i == $page ? 'white' : '#0f172a' ?>; font-weight: 700; <?= $i == $page ? 'background: var(--primary);' : '' ?>">
-                               <?= $i ?>
-                            </a>
-                        <?php endfor; ?>
-                        
-                        <?php if ($page < $total_pages): ?>
-                            <a href="?page=<?= $page + 1 ?><?= $urlParams ?>" class="btn btn-ghost" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.75rem; text-decoration: none; color: #0f172a;"><i class="fas fa-chevron-right"></i></a>
-                        <?php endif; ?>
-                    </div>
+                                                    target="_blank" class="btn btn-ghost"
+                                                    style="padding: 0.375rem 0.75rem; font-size: 0.75rem; border: 1px solid #e2e8f0; height: 32px;"
+                                                    title="Print Quotation">
+                                                    <i class="fas fa-print"></i>
+                                                </a>
+
+                                                <?php if ($canManage): ?>
+                                                    <button onclick="editQuotation(<?= $q['id'] ?>)" class="btn btn-ghost"
+                                                        style="padding: 0.375rem 0.75rem; font-size: 0.75rem; border: 1px solid #e2e8f0; height: 32px; color: #64748b;"
+                                                        title="Edit Quotation">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button onclick="deleteQuotation(<?= $q['id'] ?>)" class="btn btn-ghost"
+                                                        style="padding: 0.375rem 0.75rem; font-size: 0.75rem; border: 1px solid #e2e8f0; height: 32px; color: #ef4444; margin-left: 0.25rem;"
+                                                        title="Delete Quotation">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <!-- Executive cannot manage this quotation because lead not assigned -->
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
+                <?php if ($total_pages > 1): ?>
+                    <div class="pagination-container"
+                        style="padding: 1rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: white; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">Showing
+                                <?= count($quotations) ?> of <?= $total_items ?> quotations</span>
+                            <form method="GET" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                                <?php foreach ($_GET as $k => $v):
+                                    if ($k !== 'limit' && $k !== 'page'): ?>
+                                        <input type="hidden" name="<?= htmlspecialchars($k) ?>" value="<?= htmlspecialchars($v) ?>">
+                                    <?php endif; endforeach; ?>
+                                <select name="limit" onchange="this.form.submit()"
+                                    style="padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 0.75rem; color: #475569; background: #f8fafc; cursor: pointer;">
+                                    <option value="15" <?= $limit_val == '15' ? 'selected' : '' ?>>15 per page</option>
+                                    <option value="25" <?= $limit_val == '25' ? 'selected' : '' ?>>25 per page</option>
+                                    <option value="50" <?= $limit_val == '50' ? 'selected' : '' ?>>50 per page</option>
+                                    <option value="100" <?= $limit_val == '100' ? 'selected' : '' ?>>100 per page</option>
+                                    <option value="all" <?= $limit_val === 'all' ? 'selected' : '' ?>>All</option>
+                                </select>
+                            </form>
+                        </div>
+
+                        <?php
+                        $start_page = max(1, $page - 2);
+                        $end_page = min($total_pages, $page + 2);
+                        if ($end_page - $start_page < 4) {
+                            if ($start_page == 1) {
+                                $end_page = min($total_pages, 5);
+                            } elseif ($end_page == $total_pages) {
+                                $start_page = max(1, $total_pages - 4);
+                            }
+                        }
+                        $urlParams = "&search=" . urlencode($_GET['search'] ?? '') . "&limit=" . urlencode($limit_val);
+                        ?>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <?php if ($page > 1): ?>
+                                <a href="?page=<?= $page - 1 ?><?= $urlParams ?>" class="btn btn-ghost"
+                                    style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.75rem; text-decoration: none; color: #0f172a;"><i
+                                        class="fas fa-chevron-left"></i></a>
+                            <?php endif; ?>
+
+                            <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                                <a href="?page=<?= $i ?><?= $urlParams ?>"
+                                    class="btn <?= $i == $page ? 'btn-primary' : 'btn-ghost' ?>"
+                                    style="padding: 0.5rem 0.8rem; border: 1px solid <?= $i == $page ? 'var(--primary)' : '#e2e8f0' ?>; border-radius: 6px; font-size: 0.75rem; text-decoration: none; color: <?= $i == $page ? 'white' : '#0f172a' ?>; font-weight: 700; <?= $i == $page ? 'background: var(--primary);' : '' ?>">
+                                    <?= $i ?>
+                                </a>
+                            <?php endfor; ?>
+
+                            <?php if ($page < $total_pages): ?>
+                                <a href="?page=<?= $page + 1 ?><?= $urlParams ?>" class="btn btn-ghost"
+                                    style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.75rem; text-decoration: none; color: #0f172a;"><i
+                                        class="fas fa-chevron-right"></i></a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 <?php endif; ?>
             </div>
         </main>
@@ -524,11 +612,13 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
                                                 <div style="display:flex; gap:1rem; align-items:center;">
                                                     <div style="font-size:0.75rem; color:#64748b;"><i
                                                             class="fas fa-phone-alt"></i>
-                                                        <?= htmlspecialchars($lead['mobile'] ?? 'N/A') ?></div>
+                                                        <?= htmlspecialchars($lead['mobile'] ?? 'N/A') ?>
+                                                    </div>
                                                     <?php if (!empty($lead['requirement_names'])): ?>
                                                         <div style="font-size:0.75rem; color:var(--primary); font-weight:600;">
                                                             <i class="fas fa-layer-group" style="font-size:0.65rem;"></i>
-                                                            <?= htmlspecialchars($lead['requirement_names']) ?></div>
+                                                            <?= htmlspecialchars($lead['requirement_names']) ?>
+                                                        </div>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
@@ -670,7 +760,8 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
                 <div
                     style="background: #eef2ff; border: 1px solid #e0e7ff; padding: 1rem; border-radius: 0.75rem; display: flex; gap: 1rem; margin-bottom: 1.5rem;">
                     <i class="fas fa-info-circle" style="color: var(--primary, #6366f1); margin-top: 0.25rem;"></i>
-                    <p style="font-size: 0.875rem; color: var(--primary, #4338ca); margin: 0; line-height: 1.5; font-weight: 500;">
+                    <p
+                        style="font-size: 0.875rem; color: var(--primary, #4338ca); margin: 0; line-height: 1.5; font-weight: 500;">
                         Convert this quotation into a live invoice and set the delivery timeline for your service team.
                     </p>
                 </div>
@@ -694,10 +785,14 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
     </div>
 
     <!-- Send Quotation Email Modal -->
-    <div id="emailQuotationModal" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10000;">
-        <div class="modal-container" style="max-width: 500px; width: 90%; background: #ffffff; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); overflow: hidden;">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
-                <h2 style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 0.6rem;">
+    <div id="emailQuotationModal" class="modal-overlay"
+        style="display: none; align-items: center; justify-content: center; z-index: 10000;">
+        <div class="modal-container"
+            style="max-width: 500px; width: 90%; background: #ffffff; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); overflow: hidden;">
+            <div class="modal-header"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                <h2
+                    style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 0.6rem;">
                     <i class="fas fa-envelope" style="color: #3b82f6;"></i> Send Quotation Email
                 </h2>
                 <button type="button" onclick="closeEmailModal()"
@@ -709,48 +804,61 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
             <form id="emailQuotationForm" onsubmit="submitEmailQuotation(event)">
                 <input type="hidden" id="emailModalQuoId" value="">
                 <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
-                    <div style="background: #eff6ff; border: 1px solid #dbeafe; padding: 0.85rem 1rem; border-radius: 8px; display: flex; gap: 0.75rem; align-items: center;">
+                    <div
+                        style="background: #eff6ff; border: 1px solid #dbeafe; padding: 0.85rem 1rem; border-radius: 8px; display: flex; gap: 0.75rem; align-items: center;">
                         <i class="fas fa-file-contract" style="color: #3b82f6; font-size: 1.2rem;"></i>
                         <div>
-                            <div style="font-size: 0.85rem; font-weight: 800; color: #1e40af;" id="emailModalQuoNumber">QUO-000</div>
+                            <div style="font-size: 0.85rem; font-weight: 800; color: #1e40af;" id="emailModalQuoNumber">
+                                QUO-000</div>
                             <div style="font-size: 0.75rem; color: #3b82f6;" id="emailModalClientName">Client</div>
                         </div>
                     </div>
 
                     <div>
-                        <label class="form-label" style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">
+                        <label class="form-label"
+                            style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">
                             Recipient Email <span style="color: #ef4444;">*</span>
                         </label>
                         <div style="position: relative;">
-                            <i class="fas fa-at" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.8rem;"></i>
-                            <input type="email" id="emailModalRecipient" required class="form-input" placeholder="client@example.com"
+                            <i class="fas fa-at"
+                                style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.8rem;"></i>
+                            <input type="email" id="emailModalRecipient" required class="form-input"
+                                placeholder="client@example.com"
                                 style="width: 100%; height: 40px; padding-left: 2.25rem; font-size: 0.85rem; border-radius: 6px; border: 1.5px solid #e2e8f0; box-sizing: border-box;">
                         </div>
                     </div>
 
                     <div>
-                        <label class="form-label" style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">
+                        <label class="form-label"
+                            style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">
                             Subject
                         </label>
-                        <input type="text" id="emailModalSubject" class="form-input" placeholder="Project Quotation Proposal"
+                        <input type="text" id="emailModalSubject" class="form-input"
+                            placeholder="Project Quotation Proposal"
                             style="width: 100%; height: 40px; font-size: 0.85rem; border-radius: 6px; border: 1.5px solid #e2e8f0; box-sizing: border-box;">
                     </div>
 
                     <div>
-                        <label class="form-label" style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">
+                        <label class="form-label"
+                            style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">
                             Personal Message / Note (Optional)
                         </label>
-                        <textarea id="emailModalNote" class="form-input" rows="3" placeholder="Add an optional message or note for the client..."
+                        <textarea id="emailModalNote" class="form-input" rows="3"
+                            placeholder="Add an optional message or note for the client..."
                             style="width: 100%; padding: 0.6rem 0.75rem; font-size: 0.85rem; border-radius: 6px; border: 1.5px solid #e2e8f0; resize: vertical; box-sizing: border-box;"></textarea>
                     </div>
 
-                    <div style="font-size: 0.75rem; color: #64748b; line-height: 1.4; background: #f8fafc; padding: 0.6rem 0.75rem; border-radius: 6px;">
+                    <div
+                        style="font-size: 0.75rem; color: #64748b; line-height: 1.4; background: #f8fafc; padding: 0.6rem 0.75rem; border-radius: 6px;">
                         <i class="fas fa-info-circle" style="color: #3b82f6;"></i>
-                        The email will include an itemized quotation breakdown and a direct secure link for the client to view and download their proposal.
+                        The email will include an itemized quotation breakdown and a direct secure link for the client
+                        to view and download their proposal.
                     </div>
                 </div>
-                <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: flex-end; gap: 0.75rem;">
-                    <button type="button" onclick="closeEmailModal()" class="btn btn-ghost" style="font-weight: 700; color: #64748b; height: 38px;">Cancel</button>
+                <div class="modal-footer"
+                    style="padding: 1rem 1.5rem; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                    <button type="button" onclick="closeEmailModal()" class="btn btn-ghost"
+                        style="font-weight: 700; color: #64748b; height: 38px;">Cancel</button>
                     <button type="submit" id="emailModalSubmitBtn" class="btn btn-primary"
                         style="padding: 0 1.25rem; height: 38px; font-weight: 700; background: #3b82f6; border: none; display: flex; align-items: center; gap: 0.5rem; color: white; border-radius: 6px; cursor: pointer;">
                         <i class="fas fa-paper-plane"></i> Send Email
@@ -761,29 +869,41 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
     </div>
 
     <!-- Bulk Export Quotations Modal -->
-    <div id="quotationExportModal" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10000;">
-        <div class="modal-container" style="max-width: 480px; width: 90%; background: #ffffff; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); overflow: hidden;">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+    <div id="quotationExportModal" class="modal-overlay"
+        style="display: none; align-items: center; justify-content: center; z-index: 10000;">
+        <div class="modal-container"
+            style="max-width: 480px; width: 90%; background: #ffffff; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); overflow: hidden;">
+            <div class="modal-header"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <div style="width: 38px; height: 38px; border-radius: 8px; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                    <div
+                        style="width: 38px; height: 38px; border-radius: 8px; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
                         <i class="fas fa-file-excel"></i>
                     </div>
                     <div>
-                        <h2 style="font-size: 1.05rem; font-weight: 800; margin: 0; color: #0f172a;">Bulk Export Quotations</h2>
-                        <p style="margin: 0; font-size: 0.75rem; color: #64748b;">Download quotations in Microsoft Excel (.xlsx) format</p>
+                        <h2 style="font-size: 1.05rem; font-weight: 800; margin: 0; color: #0f172a;">Bulk Export
+                            Quotations</h2>
+                        <p style="margin: 0; font-size: 0.75rem; color: #64748b;">Download quotations in Microsoft Excel
+                            (.xlsx) format</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeExportModal()" class="btn-ghost" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #94a3b8; border: none; background: none; cursor: pointer;">
+                <button type="button" onclick="closeExportModal()" class="btn-ghost"
+                    style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #94a3b8; border: none; background: none; cursor: pointer;">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            
+
             <div style="padding: 1.5rem;">
                 <div style="margin-bottom: 1.25rem;">
-                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.5rem; text-transform: uppercase;">Export Scope</label>
-                    <select id="exportScopeSelect" class="form-input" style="appearance: auto; width: 100%; height: 40px; font-size: 0.8125rem; font-weight: 600;" onchange="handleExportScopeChange(this.value)">
+                    <label
+                        style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.5rem; text-transform: uppercase;">Export
+                        Scope</label>
+                    <select id="exportScopeSelect" class="form-input"
+                        style="appearance: auto; width: 100%; height: 40px; font-size: 0.8125rem; font-weight: 600;"
+                        onchange="handleExportScopeChange(this.value)">
                         <option value="filter">Current Filter & Search (<?= $total_items ?> quotations)</option>
-                        <option value="selected" id="exportScopeSelectedOpt" style="display:none;">Selected Quotations (<span id="modalSelectedCount">0</span> selected)</option>
+                        <option value="selected" id="exportScopeSelectedOpt" style="display:none;">Selected Quotations
+                            (<span id="modalSelectedCount">0</span> selected)</option>
                         <option value="month">Specific Month & Year</option>
                         <option value="custom">Custom Date Range</option>
                         <option value="all">All Quotations (All Time)</option>
@@ -791,18 +911,25 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
                 </div>
 
                 <!-- Monthly Selector -->
-                <div id="exportMonthBox" style="display: none; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
+                <div id="exportMonthBox"
+                    style="display: none; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
                     <div>
-                        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem;">Month</label>
-                        <select id="modalExportMonth" class="form-input" style="appearance: auto; height: 38px; font-size: 0.8125rem; width: 100%;">
+                        <label
+                            style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem;">Month</label>
+                        <select id="modalExportMonth" class="form-input"
+                            style="appearance: auto; height: 38px; font-size: 0.8125rem; width: 100%;">
                             <?php for ($m = 1; $m <= 12; $m++): ?>
-                                <option value="<?= $m ?>" <?= date('n') == $m ? 'selected' : '' ?>><?= date('F', mktime(0, 0, 0, $m, 1)) ?></option>
+                                <option value="<?= $m ?>" <?= date('n') == $m ? 'selected' : '' ?>>
+                                    <?= date('F', mktime(0, 0, 0, $m, 1)) ?>
+                                </option>
                             <?php endfor; ?>
                         </select>
                     </div>
                     <div>
-                        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem;">Year</label>
-                        <select id="modalExportYear" class="form-input" style="appearance: auto; height: 38px; font-size: 0.8125rem; width: 100%;">
+                        <label
+                            style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem;">Year</label>
+                        <select id="modalExportYear" class="form-input"
+                            style="appearance: auto; height: 38px; font-size: 0.8125rem; width: 100%;">
                             <?php for ($y = date('Y'); $y >= date('Y') - 3; $y--): ?>
                                 <option value="<?= $y ?>" <?= date('Y') == $y ? 'selected' : '' ?>><?= $y ?></option>
                             <?php endfor; ?>
@@ -811,21 +938,31 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
                 </div>
 
                 <!-- Custom Date Range -->
-                <div id="exportCustomDateBox" style="display: none; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
+                <div id="exportCustomDateBox"
+                    style="display: none; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
                     <div>
-                        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem;">From Date</label>
-                        <input type="date" id="modalExportStart" value="<?= date('Y-m-01') ?>" class="form-input" style="height: 38px; font-size: 0.8125rem; width: 100%; box-sizing: border-box;">
+                        <label
+                            style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem;">From
+                            Date</label>
+                        <input type="date" id="modalExportStart" value="<?= date('Y-m-01') ?>" class="form-input"
+                            style="height: 38px; font-size: 0.8125rem; width: 100%; box-sizing: border-box;">
                     </div>
                     <div>
-                        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem;">To Date</label>
-                        <input type="date" id="modalExportEnd" value="<?= date('Y-m-d') ?>" class="form-input" style="height: 38px; font-size: 0.8125rem; width: 100%; box-sizing: border-box;">
+                        <label
+                            style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem;">To
+                            Date</label>
+                        <input type="date" id="modalExportEnd" value="<?= date('Y-m-d') ?>" class="form-input"
+                            style="height: 38px; font-size: 0.8125rem; width: 100%; box-sizing: border-box;">
                     </div>
                 </div>
 
                 <!-- Status Filter -->
                 <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.5rem; text-transform: uppercase;">Quotation Status</label>
-                    <select id="modalExportStatus" class="form-input" style="appearance: auto; width: 100%; height: 40px; font-size: 0.8125rem;">
+                    <label
+                        style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.5rem; text-transform: uppercase;">Quotation
+                        Status</label>
+                    <select id="modalExportStatus" class="form-input"
+                        style="appearance: auto; width: 100%; height: 40px; font-size: 0.8125rem;">
                         <option value="all">All Statuses</option>
                         <option value="pending">Pending / Draft</option>
                         <option value="invoiced">Converted to Invoice</option>
@@ -833,8 +970,10 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
                 </div>
 
                 <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
-                    <button type="button" onclick="closeExportModal()" class="btn btn-ghost" style="padding: 0.6rem 1.25rem; font-size: 0.8125rem; font-weight: 700;">Cancel</button>
-                    <button type="button" onclick="executeXLSXExport()" class="btn btn-primary" style="background: #10b981; border: none; padding: 0.6rem 1.5rem; font-size: 0.8125rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: white; border-radius: 6px; cursor: pointer;">
+                    <button type="button" onclick="closeExportModal()" class="btn btn-ghost"
+                        style="padding: 0.6rem 1.25rem; font-size: 0.8125rem; font-weight: 700;">Cancel</button>
+                    <button type="button" onclick="executeXLSXExport()" class="btn btn-primary"
+                        style="background: #10b981; border: none; padding: 0.6rem 1.5rem; font-size: 0.8125rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: white; border-radius: 6px; cursor: pointer;">
                         <i class="fas fa-file-excel"></i> Download XLSX
                     </button>
                 </div>
@@ -845,7 +984,7 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
     <script>
         const requirementFees = {
             <?php foreach ($requirements as $req): ?>
-                        "<?= addslashes($req['name']) ?>": {
+                                            "<?= addslashes($req['name']) ?>": {
                     fee: <?= (float) $req['fee'] ?>,
                     desc: <?= json_encode($req['description'] ?? '') ?>
                 },
@@ -910,21 +1049,21 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid #f1f5f9';
             tr.innerHTML = `
-                <td style="padding:0.5rem 0.25rem;">
-                    <input type="text" class="form-input item-name" list="services_list" value="${name}" required style="margin:0; font-size:0.8rem; font-weight:700;" oninput="handleItemNameInput(this)">
-                    <input type="text" class="item-note" value="${note}" placeholder="Add detailed note/description..." style="width:100%; border:none; background:transparent; font-size:0.7rem; color:#64748b; margin-top:2px; padding:2px 0; outline:none;">
-                </td>
-                <td style="padding:0.5rem 0.25rem;">
-                    <input type="number" class="form-input item-qty" value="${qty}" min="1" required style="margin:0; text-align:right; font-size:0.8rem;" oninput="updateCalculations()">
-                </td>
-                <td style="padding:0.5rem 0.25rem;">
-                    <input type="number" class="form-input item-rate" value="${rate}" step="0.01" required style="margin:0; text-align:right; font-size:0.8rem;" oninput="updateCalculations()">
-                </td>
-                <td style="padding:0.5rem 0.25rem; text-align:right; font-weight:700; font-size:0.8rem;" class="item-amount">₹0.00</td>
-                <td style="padding:0.5rem 0.25rem; text-align:center;">
-                    <button type="button" class="btn-ghost" onclick="this.closest('tr').remove(); updateCalculations();" style="color:var(--danger); padding:0.25rem;"><i class="fas fa-times"></i></button>
-                </td>
-            `;
+                    <td style="padding:0.5rem 0.25rem;">
+                        <input type="text" class="form-input item-name" list="services_list" value="${name}" required style="margin:0; font-size:0.8rem; font-weight:700;" oninput="handleItemNameInput(this)">
+                        <input type="text" class="item-note" value="${note}" placeholder="Add detailed note/description..." style="width:100%; border:none; background:transparent; font-size:0.7rem; color:#64748b; margin-top:2px; padding:2px 0; outline:none;">
+                    </td>
+                    <td style="padding:0.5rem 0.25rem;">
+                        <input type="number" class="form-input item-qty" value="${qty}" min="1" required style="margin:0; text-align:right; font-size:0.8rem;" oninput="updateCalculations()">
+                    </td>
+                    <td style="padding:0.5rem 0.25rem;">
+                        <input type="number" class="form-input item-rate" value="${rate}" step="0.01" required style="margin:0; text-align:right; font-size:0.8rem;" oninput="updateCalculations()">
+                    </td>
+                    <td style="padding:0.5rem 0.25rem; text-align:right; font-weight:700; font-size:0.8rem;" class="item-amount">₹0.00</td>
+                    <td style="padding:0.5rem 0.25rem; text-align:center;">
+                        <button type="button" class="btn-ghost" onclick="this.closest('tr').remove(); updateCalculations();" style="color:var(--danger); padding:0.25rem;"><i class="fas fa-times"></i></button>
+                    </td>
+                `;
             tbody.appendChild(tr);
             updateCalculations();
         }
@@ -978,23 +1117,23 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
             try {
                 const response = await fetch('<?= APP_URL ?>/public/index.php/api/quotations.php?id=' + id);
                 if (!response.ok) throw new Error('Network response was not ok');
-                const q = await response.json();
+                const result = await response.json();
+                const q = result.quotation;
 
                 document.querySelector('#quotationModal h2').textContent = 'Edit Quotation';
                 document.getElementById('quo_id_input').value = q.id;
                 document.getElementById('quotation_number_input').value = q.quotation_number;
                 document.getElementById('quotation_date').value = q.quotation_date;
                 document.getElementById('lead_id_hidden').value = q.lead_id;
-                document.getElementById('selectedLeadText').innerText = q.client_name;
+                document.getElementById('selectedLeadText').innerText = q.customer_name;
 
                 document.getElementById('is_gst_enabled_quo').checked = q.is_gst_enabled == 1;
                 toggleGstEnable();
 
                 const itemsBody = document.getElementById('quo_items_body');
                 itemsBody.innerHTML = '';
-                if (q.description) {
-                    const items = JSON.parse(q.description);
-                    items.forEach(it => addQuotationItem(it.name, it.qty, it.rate, it.note || ''));
+                if (result.items && result.items.length > 0) {
+                    result.items.forEach(it => addQuotationItem(it.name, it.qty, it.rate, it.note || ''));
                 } else {
                     addQuotationItem();
                 }
@@ -1111,7 +1250,7 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
             document.getElementById('emailModalRecipient').value = defaultEmail || '';
             document.getElementById('emailModalSubject').value = 'Project Proposal & Quotation ' + (quoNumber || '');
             document.getElementById('emailModalNote').value = '';
-            
+
             const modal = document.getElementById('emailQuotationModal');
             modal.style.display = 'flex';
         }
@@ -1188,7 +1327,7 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
             const countSpan = document.getElementById('bulkCount');
             const emailCountSpan = document.getElementById('bulkEmailCount');
             const exportCountSpan = document.getElementById('bulkExportCount');
-            
+
             if (checkboxes.length > 0) {
                 container.style.display = 'flex';
                 countSpan.innerText = checkboxes.length;
@@ -1302,6 +1441,25 @@ $requirements = $db->fetchAll("SELECT id, name, fee, description FROM requiremen
             const subject = encodeURIComponent('Quotation Proposal & Project Details');
             const body = encodeURIComponent('Dear Client,\n\nPlease find your project quotation proposal attached/available in your client portal.\n\nBest regards,');
             window.location.href = `mailto:?bcc=${encodeURIComponent(emails.join(','))}&subject=${subject}&body=${body}`;
+        }
+        async function deleteQuotation(id) {
+            if (!confirm('Are you sure you want to delete this quotation? This action cannot be undone.')) return;
+            try {
+                const response = await fetch('<?= APP_URL ?>/public/index.php/api/quotations.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete', id: id })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    window.location.reload();
+                } else {
+                    alert(result.error || 'Failed to delete quotation');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('An error occurred while deleting the quotation.');
+            }
         }
     </script>
     <?php include 'partials/wa_modal.php'; ?>

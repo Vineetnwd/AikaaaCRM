@@ -379,6 +379,53 @@ if ($method === 'POST') {
         }
     }
 
+    if (isset($input['action']) && $input['action'] === 'delete') {
+        try {
+            $quo_id = intval($input['id'] ?? 0);
+            $company_id = Auth::companyId();
+
+            if (!$quo_id) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Invalid Quotation ID']);
+                exit;
+            }
+
+            $quo = $db->fetchOne("SELECT * FROM quotations WHERE id = ? AND company_id = ?", [$quo_id, $company_id]);
+            if (!$quo) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Quotation not found']);
+                exit;
+            }
+
+            if ($quo['status'] === 'invoiced') {
+                http_response_code(400);
+                echo json_encode(['error' => 'Cannot delete an invoiced quotation.']);
+                exit;
+            }
+
+            if (Auth::isExecutive() && !empty($quo['lead_id'])) {
+                $ld = $db->fetchOne("SELECT assigned_employee_id, assigned_to FROM leads WHERE id = ? AND company_id = ?", [$quo['lead_id'], $company_id]);
+                $empId = Auth::employeeId();
+                $userId = Auth::userId();
+                $assignedEmp = intval($ld['assigned_employee_id'] ?? 0);
+                $assignedUser = intval($ld['assigned_to'] ?? 0);
+                if ($assignedEmp !== ($empId ?: 0) && $assignedUser !== ($userId ?: 0)) {
+                    http_response_code(403);
+                    echo json_encode(['error' => 'Access denied: lead not assigned to you']);
+                    exit;
+                }
+            }
+
+            $db->query("DELETE FROM quotations WHERE id = ? AND company_id = ?", [$quo_id, $company_id]);
+            echo json_encode(['success' => true]);
+            exit;
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Delete failed: ' . $e->getMessage()]);
+            exit;
+        }
+    }
+
     // CREATE OR UPDATE QUOTATION LOGIC
     try {
     if (!empty($input['id']) && empty($input['action'])) {

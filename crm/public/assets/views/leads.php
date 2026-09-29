@@ -3184,8 +3184,7 @@ if ($isExecutive) {
     </style>
     <script>
         function handleWAClick(type, id) {
-            const record = allLeads.find(l => l.id == id) || {};
-            openWAModal(type, id, record);
+            openWAModal(type, [id]);
         }
     </script>
     <?php include 'partials/wa_modal.php'; ?>

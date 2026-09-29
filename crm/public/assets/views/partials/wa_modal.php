@@ -131,6 +131,7 @@
             if (isLinkField) displayName = 'link';
 
             let placeholder = isBulk ? `Dynamic {{${displayName}}}` : '';
+            if (val === undefined || val === null) val = '';
 
             const div = document.createElement('div');
             div.innerHTML = `
