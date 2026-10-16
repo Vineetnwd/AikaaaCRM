@@ -40,6 +40,10 @@ class Company {
                 $this->db->query("ALTER TABLE companies ADD COLUMN whatsapp_default_mapping TEXT DEFAULT NULL");
                 $this->db->query("ALTER TABLE companies ADD COLUMN whatsapp_header_image VARCHAR(512) DEFAULT NULL");
             }
+            if (!in_array('whatsapp_limit', $columnNames)) {
+                $this->db->query("ALTER TABLE companies ADD COLUMN whatsapp_limit INT DEFAULT 50");
+                $this->db->query("ALTER TABLE companies ADD COLUMN whatsapp_messages_sent INT DEFAULT 0");
+            }
         } catch (\Throwable $e) {
             // Silence error
         }
@@ -217,12 +221,14 @@ class Company {
             'plan' => $data['plan'] ?? 'trial',
             'status' => $data['status'] ?? 'active',
             'trial_ends_at' => $trialEnds,
-            'subscription_ends_at' => ($data['plan'] === 'trial' || empty($data['plan'])) ? null : date('Y-m-d', strtotime(($data['plan'] === 'pro' ? '+1 year' : '+1 month')))
+            'subscription_ends_at' => ($data['plan'] === 'trial' || empty($data['plan'])) ? null : date('Y-m-d', strtotime(($data['plan'] === 'pro' ? '+1 year' : '+1 month'))),
+            'whatsapp_limit' => isset($data['whatsapp_limit']) ? intval($data['whatsapp_limit']) : 50,
+            'whatsapp_messages_sent' => 0
         ]);
     }
 
     public function update($id, $data) {
-        $allowedFields = ['name', 'subdomain', 'gst_number', 'address', 'plan', 'status', 'logo_path', 'signature_path', 'qr_code_path', 'invoice_terms', 'quotation_terms', 'bank_details', 'trial_ends_at', 'subscription_starts_at', 'subscription_ends_at', 'created_at', 'smtp_host', 'smtp_port', 'smtp_email', 'smtp_password', 'smtp_secure', 'whatsapp_access_token', 'whatsapp_phone_number_id', 'whatsapp_business_account_id', 'whatsapp_number', 'whatsapp_default_template', 'whatsapp_default_mapping', 'whatsapp_header_image'];
+        $allowedFields = ['name', 'subdomain', 'gst_number', 'address', 'plan', 'status', 'logo_path', 'signature_path', 'qr_code_path', 'invoice_terms', 'quotation_terms', 'bank_details', 'trial_ends_at', 'subscription_starts_at', 'subscription_ends_at', 'created_at', 'smtp_host', 'smtp_port', 'smtp_email', 'smtp_password', 'smtp_secure', 'whatsapp_access_token', 'whatsapp_phone_number_id', 'whatsapp_business_account_id', 'whatsapp_number', 'whatsapp_default_template', 'whatsapp_default_mapping', 'whatsapp_header_image', 'whatsapp_limit', 'whatsapp_messages_sent'];
         
         $oldData = $this->find($id);
         

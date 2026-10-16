@@ -6,7 +6,7 @@
     <div class="container">
         <div class="section-badge animate" style="margin-bottom:.5rem;"><i class="fa-solid fa-book"></i> Help & Guides</div>
         <h1 class="animate delay-1" style="font-size: 2.25rem; margin-bottom: 0.25rem;">Documentation</h1>
-        <p class="animate delay-2" style="font-size: 0.9375rem; margin: 0; text-align: left;">Everything you need to know to get the most out of Aikaa CRM.</p>
+        <p class="animate delay-2" style="font-size: 0.9375rem; margin: 0; text-align: left;">Everything you need to know to get the most out of Aikaaa CRM.</p>
     </div>
 </div>
 

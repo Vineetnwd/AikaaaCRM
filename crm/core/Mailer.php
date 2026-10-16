@@ -22,7 +22,7 @@ class Mailer {
         $username = $smtp['smtp_email'] ?? '';
         $password = $smtp['smtp_password'] ?? '';
         $secure = strtolower($smtp['smtp_secure'] ?? 'tls'); // 'tls', 'ssl', or 'none'
-        $company_name = $smtp['company_name'] ?? 'Aikaa CRM';
+        $company_name = $smtp['company_name'] ?? 'Aikaaa CRM';
 
         if (empty($host) || empty($username)) {
             throw new \Exception("SMTP configuration details are incomplete (Host and Email Username are required)");

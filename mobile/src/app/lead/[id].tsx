@@ -80,7 +80,7 @@ export default function LeadDetailScreen() {
     if (!lead?.mobile) return;
     const clean = lead.mobile.replace(/[^0-9]/g, '');
     const phone = clean.length === 10 ? `91${clean}` : clean;
-    const msg = encodeURIComponent(`Hello ${lead.name || ''}, regarding your requirement with Aikaa CRM.`);
+    const msg = encodeURIComponent(`Hello ${lead.name || ''}, regarding your requirement with Aikaaa CRM.`);
     const appUrl = `whatsapp://send?phone=${phone}&text=${msg}`;
     const webUrl = `https://wa.me/${phone}?text=${msg}`;
 

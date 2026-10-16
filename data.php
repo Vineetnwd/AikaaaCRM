@@ -53,4 +53,26 @@ $nav_links     = $data['nav_links']      ?? [];
 $features      = $data['features']       ?? [];
 $core_values   = $data['core_values']    ?? [];
 $pricing_plans = $data['pricing_plans']  ?? [];
+
+// ── Web Root URL Helper ────────────────────────────────────────────
+$script_dir = dirname($_SERVER['SCRIPT_NAME'] ?? '');
+if (strpos($script_dir, '/crm/public') !== false) {
+    $web_root = substr($script_dir, 0, strpos($script_dir, '/crm/public'));
+} elseif (strpos($script_dir, '/public') !== false) {
+    $web_root = substr($script_dir, 0, strpos($script_dir, '/public'));
+} else {
+    $web_root = ($script_dir === '/' || $script_dir === '\\') ? '' : $script_dir;
+}
+$web_root = rtrim($web_root, '/');
+
+if (!function_exists('web_url')) {
+    function web_url($path = '') {
+        global $web_root;
+        $path = trim($path);
+        if ($path === '' || $path === '#') return '#';
+        if (preg_match('#^(https?://|//|mailto:|tel:)#i', $path)) return $path;
+        if (!empty($web_root) && strpos($path, $web_root) === 0) return $path;
+        return $web_root . '/' . ltrim($path, '/');
+    }
+}
 ?>

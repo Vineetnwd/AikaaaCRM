@@ -76,7 +76,7 @@ $path = $path ?? '';
     }
 
     if (!$company_name) {
-        $company_name = 'Aikaa CRM';
+        $company_name = 'Aikaaa CRM';
     }
     ?>
     <?php if (!empty($favicon_url)): ?>
@@ -286,6 +286,12 @@ $path = $path ?? '';
                 <a href="<?= APP_URL ?>/public/index.php/employees"
                     class="nav-link <?= $path == 'employees' ? 'active' : '' ?>">
                     <i class="fas fa-id-badge"></i> <span>Employees</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="<?= APP_URL ?>/public/index.php/target_slides"
+                    class="nav-link <?= $path == 'target_slides' ? 'active' : '' ?>" target="_blank">
+                    <i class="fas fa-tv"></i> <span>Target Slides</span>
                 </a>
             </div>
         <?php endif; ?>

@@ -41,27 +41,87 @@ if (empty($leadIds) && empty($customerIds) && empty($invoiceIds) && empty($quota
 $companyId = Auth::companyId();
 $db = Database::getInstance();
 
-// Fetch Company WA Settings
-$company = $db->fetchOne("SELECT name, whatsapp_access_token, whatsapp_number, whatsapp_default_template, whatsapp_default_mapping, whatsapp_header_image FROM companies WHERE id = ?", [$companyId]);
+// Auto-migrate columns if not present
+try { $db->query("ALTER TABLE companies ADD COLUMN whatsapp_limit INT DEFAULT 50"); } catch (\Throwable $e) {}
+try { $db->query("ALTER TABLE companies ADD COLUMN whatsapp_messages_sent INT DEFAULT 0"); } catch (\Throwable $e) {}
 
-if (empty($company['whatsapp_access_token']) || empty($company['whatsapp_number'])) {
-    http_response_code(400);
-    echo json_encode(['error' => 'WhatsApp API Access Token and WhatsApp Number must be configured in Settings.']);
+if (isset($_GET['action']) && $_GET['action'] === 'quota') {
+    $company = $db->fetchOne("SELECT * FROM companies WHERE id = ?", [$companyId]);
+    echo json_encode([
+        'success' => true,
+        'quota' => Auth::getWhatsAppQuota($company)
+    ]);
     exit;
 }
 
-if (empty($company['whatsapp_default_template'])) {
+// Fetch Company WA Settings
+$company = $db->fetchOne("SELECT * FROM companies WHERE id = ?", [$companyId]);
+$quota = Auth::getWhatsAppQuota($company);
+
+$totalRequested = count($leadIds) + count($customerIds) + count($invoiceIds) + count($quotationIds);
+
+// Enforce message quota limit for non-pro or accounts without custom keys
+if (!$quota['unlimited']) {
+    if ($quota['remaining'] <= 0) {
+        http_response_code(403);
+        echo json_encode([
+            'error' => "WhatsApp message limit reached ({$quota['sent']}/{$quota['limit']} sent). Please upgrade to the Pro Plan to integrate your own WhatsApp API keys for unlimited messaging.",
+            'quota_exceeded' => true,
+            'quota' => $quota
+        ]);
+        exit;
+    }
+    if ($totalRequested > $quota['remaining']) {
+        http_response_code(403);
+        echo json_encode([
+            'error' => "You have only {$quota['remaining']} WhatsApp message(s) remaining in your quota, but {$totalRequested} recipients were selected. Please select fewer recipients or upgrade to the Pro Plan.",
+            'quota_exceeded' => true,
+            'quota' => $quota
+        ]);
+        exit;
+    }
+}
+
+$accessToken = $company['whatsapp_access_token'] ?? '';
+$fromNumber = trim($company['whatsapp_number'] ?? '');
+$templateName = $company['whatsapp_default_template'] ?? '';
+$mapping = array_map('trim', explode(',', $company['whatsapp_default_mapping'] ?? ''));
+
+// Fallback to platform system keys if company keys are empty
+if (empty($accessToken) || empty($fromNumber)) {
+    try {
+        $sysRow = $db->fetchOne("SELECT setting_value FROM website_settings WHERE setting_key = 'system_whatsapp_config'");
+        if ($sysRow && !empty($sysRow['setting_value'])) {
+            $sysWA = json_decode($sysRow['setting_value'], true) ?: [];
+            if (!empty($sysWA['access_token']) && !empty($sysWA['number'])) {
+                $accessToken = $sysWA['access_token'];
+                $fromNumber = $sysWA['number'];
+                if (empty($templateName)) $templateName = $sysWA['template'] ?? 'info_update779';
+                if (empty($company['whatsapp_default_mapping'])) $mapping = array_map('trim', explode(',', $sysWA['mapping'] ?? 'name,service,status'));
+            }
+        }
+    } catch (\Throwable $e) {}
+}
+
+if (empty($accessToken) || empty($fromNumber)) {
+    http_response_code(400);
+    if (!Auth::canIntegrateCustomWhatsApp($company)) {
+        echo json_encode(['error' => 'Platform WhatsApp API is currently being configured by administrator. To connect your own WhatsApp Business Cloud API, please upgrade to the Pro Plan.']);
+    } else {
+        echo json_encode(['error' => 'WhatsApp API Access Token and WhatsApp Number must be configured in Settings.']);
+    }
+    exit;
+}
+
+if (empty($templateName)) {
     http_response_code(400);
     echo json_encode(['error' => 'No Default WhatsApp Template configured. Please set it in Settings.']);
     exit;
 }
 
-$templateName = $company['whatsapp_default_template'];
-$fromNumber = trim($company['whatsapp_number'] ?? '');
 if (!empty($fromNumber) && $fromNumber[0] !== '+') {
     $fromNumber = '+' . ltrim($fromNumber, '+');
 }
-$mapping = array_map('trim', explode(',', $company['whatsapp_default_mapping'] ?? ''));
 $customVariables = $input['custom_variables'] ?? [];
 
 $successCount = 0;
@@ -88,7 +148,7 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     }
 }
 
-$processPerson = function ($lead, $isLead) use ($company, $fromNumber, $templateName, $mapping, $customVariables, $headerImageLink, &$successCount, &$failCount, &$lastErrorDetails) {
+$processPerson = function ($lead, $isLead) use ($db, $company, $companyId, $quota, $accessToken, $fromNumber, $templateName, $mapping, $customVariables, $headerImageLink, &$successCount, &$failCount, &$lastErrorDetails) {
     if (!$lead)
         return;
 
@@ -151,6 +211,15 @@ $processPerson = function ($lead, $isLead) use ($company, $fromNumber, $template
         }
     }
 
+    // Safety fallback: Meta WhatsApp API rejects any body parameter that is an empty string
+    foreach ($parameters as $pIdx => &$pVal) {
+        $pVal = trim((string)$pVal);
+        if ($pVal === '') {
+            $pVal = ($pIdx === 3 ? ($company['name'] ?? 'Aikaaa CRM') : ($pIdx === 1 ? 'Our Services' : ($pIdx === 2 ? 'Active' : 'Customer')));
+        }
+    }
+    unset($pVal);
+
     $payload = [
         "from" => $fromNumber,
         "campaignName" => "crm-api",
@@ -179,7 +248,7 @@ $processPerson = function ($lead, $isLead) use ($company, $fromNumber, $template
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "apikey: " . $company['whatsapp_access_token'],
+        "apikey: " . $accessToken,
         "Content-Type: application/json"
     ]);
 
@@ -189,6 +258,9 @@ $processPerson = function ($lead, $isLead) use ($company, $fromNumber, $template
 
     if ($httpcode >= 200 && $httpcode < 300) {
         $successCount++;
+        if (!$quota['unlimited']) {
+            $db->query("UPDATE companies SET whatsapp_messages_sent = COALESCE(whatsapp_messages_sent, 0) + 1 WHERE id = ?", [$companyId]);
+        }
     } else {
         $failCount++;
         $lastErrorDetails = json_decode($response, true) ?: $response;
@@ -205,12 +277,23 @@ foreach ($leadIds as $id) {
 }
 
 foreach ($customerIds as $id) {
-    $customer = $db->fetchOne("SELECT c.name, c.mobile, c.email, c.address 
+    $customer = $db->fetchOne("SELECT c.*,
+        (SELECT GROUP_CONCAT(DISTINCT r.name SEPARATOR ', ') 
+         FROM lead_requirements lr 
+         JOIN requirements r ON lr.requirement_id = r.id 
+         JOIN leads l ON lr.lead_id = l.id 
+         WHERE (l.customer_id = c.id OR (l.mobile != '' AND l.mobile COLLATE utf8mb4_unicode_ci = c.mobile COLLATE utf8mb4_unicode_ci)) AND l.company_id = c.company_id
+        ) as service_name
         FROM customers c 
         WHERE c.id = ? AND c.company_id = ?", [$id, $companyId]);
     if ($customer) {
-        $customer['status'] = 'customer';
-        $customer['service_name'] = '';
+        $customer['status'] = 'Customer';
+        if (empty($customer['service_name'])) {
+            $customer['service_name'] = 'Our Services';
+        }
+        $customer['msg'] = 'Thank you for choosing us.';
+        $customer['msg2'] = 'Feel free to contact us if you need any assistance.';
+        $customer['link'] = $company['name'] ?? 'Aikaaa CRM';
         $processPerson($customer, false);
     }
 }
@@ -268,8 +351,14 @@ if ($failCount > 0 && $successCount == 0) {
         'details' => $lastErrorDetails
     ]);
 } else {
+    $refreshedCompany = $db->fetchOne("SELECT * FROM companies WHERE id = ?", [$companyId]);
+    $updatedQuota = Auth::getWhatsAppQuota($refreshedCompany);
+
     echo json_encode([
         'success' => true,
-        'message' => "Successfully sent $successCount messages." . ($failCount > 0 ? " ($failCount failed)" : "")
+        'message' => "Successfully sent $successCount messages." . ($failCount > 0 ? " ($failCount failed)" : ""),
+        'sent_count' => $successCount,
+        'fail_count' => $failCount,
+        'quota' => $updatedQuota
     ]);
 }

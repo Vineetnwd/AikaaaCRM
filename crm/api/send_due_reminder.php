@@ -62,7 +62,7 @@ if (!$company) {
     exit;
 }
 
-$company_name = htmlspecialchars($company['name'] ?? 'Aikaa CRM Client');
+$company_name = htmlspecialchars($company['name'] ?? 'Aikaaa CRM Client');
 $client_name = htmlspecialchars($invoice['client_name'] ?? 'Valued Customer');
 $invoice_num = htmlspecialchars($invoice['invoice_number']);
 $invoice_date = date('d M, Y', strtotime($invoice['invoice_date']));
@@ -174,7 +174,7 @@ if ($has_smtp) {
         'smtp_email' => $company['smtp_email'],
         'smtp_password' => $company['smtp_password'] ?? '',
         'smtp_secure' => $company['smtp_secure'] ?? 'tls',
-        'company_name' => $company['name'] ?? 'Aikaa CRM'
+        'company_name' => $company['name'] ?? 'Aikaaa CRM'
     ];
     
     try {

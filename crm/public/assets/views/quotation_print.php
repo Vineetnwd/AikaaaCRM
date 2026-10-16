@@ -284,7 +284,7 @@ $company = $db->fetchOne("SELECT * FROM companies WHERE id = ?", [$quotation['co
                     <?php else: ?>
                         <div
                             style="font-size: 24px; font-weight: 900; color: var(--primary, #6366f1); border-left: 4px solid var(--primary, #6366f1); padding-left: 10px; margin-bottom: 10px;">
-                            <?= htmlspecialchars($company['name'] ?? 'AIKAA CRM') ?>
+                            <?= htmlspecialchars($company['name'] ?? 'AIKAAA CRM') ?>
                         </div>
                     <?php endif; ?>
                 </td>

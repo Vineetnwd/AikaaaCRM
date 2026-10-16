@@ -14,9 +14,34 @@ class WhatsApp
         $db = Database::getInstance();
         $companyId = Auth::companyId();
 
-        $company = $db->fetchOne("SELECT whatsapp_access_token, whatsapp_number, whatsapp_default_template, whatsapp_header_image FROM companies WHERE id = ?", [$companyId]);
+        $company = $db->fetchOne("SELECT * FROM companies WHERE id = ?", [$companyId]);
+        if (!$company) return false;
 
-        if (empty($company['whatsapp_access_token']) || empty($company['whatsapp_number']) || empty($company['whatsapp_default_template'])) {
+        $quota = Auth::getWhatsAppQuota($company);
+        if (!$quota['unlimited'] && $quota['remaining'] <= 0) {
+            return false; // Quota limit reached
+        }
+
+        $accessToken = $company['whatsapp_access_token'] ?? '';
+        $fromNumber = trim($company['whatsapp_number'] ?? '');
+        $templateName = $company['whatsapp_default_template'] ?? '';
+
+        // Fallback to platform system keys if company keys are empty
+        if (empty($accessToken) || empty($fromNumber)) {
+            try {
+                $sysRow = $db->fetchOne("SELECT setting_value FROM website_settings WHERE setting_key = 'system_whatsapp_config'");
+                if ($sysRow && !empty($sysRow['setting_value'])) {
+                    $sysWA = json_decode($sysRow['setting_value'], true) ?: [];
+                    if (!empty($sysWA['access_token']) && !empty($sysWA['number'])) {
+                        $accessToken = $sysWA['access_token'];
+                        $fromNumber = $sysWA['number'];
+                        if (empty($templateName)) $templateName = $sysWA['template'] ?? 'info_update779';
+                    }
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        if (empty($accessToken) || empty($fromNumber) || empty($templateName)) {
             return false; // Not configured properly
         }
 
@@ -33,7 +58,6 @@ class WhatsApp
             $parameters[] = (string)$val;
         }
 
-        $fromNumber = trim($company['whatsapp_number']);
         if (!empty($fromNumber) && $fromNumber[0] !== '+') {
             $fromNumber = '+' . ltrim($fromNumber, '+');
         }
@@ -42,7 +66,7 @@ class WhatsApp
             "from" => $fromNumber,
             "campaignName" => "crm-api",
             "to" => "+" . ltrim($mobile, '+'),
-            "templateName" => $company['whatsapp_default_template'],
+            "templateName" => $templateName,
             "type" => "template",
             "components" => [
                 "body" => [
@@ -67,7 +91,7 @@ class WhatsApp
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "apikey: " . $company['whatsapp_access_token'],
+            "apikey: " . $accessToken,
             "Content-Type: application/json"
         ]);
 
@@ -75,7 +99,12 @@ class WhatsApp
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        return $httpcode >= 200 && $httpcode < 300;
+        $success = ($httpcode >= 200 && $httpcode < 300);
+        if ($success && !$quota['unlimited']) {
+            $db->query("UPDATE companies SET whatsapp_messages_sent = COALESCE(whatsapp_messages_sent, 0) + 1 WHERE id = ?", [$companyId]);
+        }
+
+        return $success;
     }
     
     /**

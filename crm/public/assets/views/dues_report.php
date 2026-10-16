@@ -142,7 +142,7 @@ $filtered_invoices = $db->fetchAll("SELECT i.*, l.name as client_name, l.email a
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dues & Reminders | <?= htmlspecialchars($company['name'] ?? 'Aikaa CRM') ?></title>
+    <title>Dues & Reminders | <?= htmlspecialchars($company['name'] ?? 'Aikaaa CRM') ?></title>
     <link rel="stylesheet" href="<?= APP_URL ?>/public/assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -609,7 +609,7 @@ $filtered_invoices = $db->fetchAll("SELECT i.*, l.name as client_name, l.email a
                                 $aging_days = $inv['aging_days'];
 
                                 // Prefilled text message for WhatsApp
-                                $wa_text = "Dear " . ($inv['client_name'] ?? 'Client') . ",\n\nThis is a friendly reminder regarding your outstanding balance of ₹" . number_format($due_amt, 2) . " on invoice #" . $inv['invoice_number'] . " which was due on " . (!empty($inv['due_date']) ? date('d M, Y', strtotime($inv['due_date'])) : 'N/A') . ".\n\nPlease arrange for the payment at your earliest convenience. If you have already processed the payment, please disregard this message.\n\nThank you,\n" . ($company['name'] ?? 'Aikaa CRM');
+                                $wa_text = "Dear " . ($inv['client_name'] ?? 'Client') . ",\n\nThis is a friendly reminder regarding your outstanding balance of ₹" . number_format($due_amt, 2) . " on invoice #" . $inv['invoice_number'] . " which was due on " . (!empty($inv['due_date']) ? date('d M, Y', strtotime($inv['due_date'])) : 'N/A') . ".\n\nPlease arrange for the payment at your earliest convenience. If you have already processed the payment, please disregard this message.\n\nThank you,\n" . ($company['name'] ?? 'Aikaaa CRM');
                                 $mobile_num = preg_replace('/[^0-9]/', '', $inv['client_mobile'] ?? '');
                                 if (strlen($mobile_num) === 10) {
                                     $mobile_num = '91' . $mobile_num; // Prepends Indian country code as default

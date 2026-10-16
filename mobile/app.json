@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Aikaa CRM",
-    "slug": "aikaa-crm",
+    "name": "Aikaaa CRM",
+    "slug": "aikaaa-crm",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.anonymous.aikaacrm"
+      "bundleIdentifier": "com.anonymous.aikaaacrm"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +19,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.aikaacrm"
+      "package": "com.anonymous.aikaaacrm"
     },
     "web": {
       "output": "static",

@@ -1,6 +1,6 @@
 <?php
 /**
- * Aikaa CRM - Root Bridge
+ * Aikaaa CRM - Root Bridge
  * This file allows the app to run on servers that don't support .htaccess 
  * or when running 'php -S' from the root directory.
  */

@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS aikaa_crm;
-USE aikaa_crm;
+CREATE DATABASE IF NOT EXISTS aikaaa_crm;
+USE aikaaa_crm;
 
 -- Companies (Tenants)
 CREATE TABLE companies (

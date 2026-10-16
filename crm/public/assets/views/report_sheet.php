@@ -130,7 +130,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Report Sheet | Aikaa CRM</title>
+    <title>Task Report Sheet | Aikaaa CRM</title>
     <link rel="stylesheet" href="<?= APP_URL ?>/public/assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <style>

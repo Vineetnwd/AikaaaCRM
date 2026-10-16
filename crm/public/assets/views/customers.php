@@ -27,10 +27,11 @@ if ($isExecutive) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customers | Aikaa CRM</title>
+    <title>Customers | Aikaaa CRM</title>
     <link rel="stylesheet" href="<?= APP_URL ?>/public/assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         .customer-card {
             background: white;
@@ -529,6 +530,19 @@ if ($isExecutive) {
 
         function handleWAClick(type, id) {
             const record = allCustomers.find(c => Number(c.id) === Number(id)) || {};
+            if (!record.mobile || record.mobile.trim() === '') {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Mobile Number Missing',
+                        text: 'This customer does not have a valid mobile phone number recorded.',
+                        confirmButtonColor: '#f59e0b'
+                    });
+                } else {
+                    alert('This customer does not have a valid mobile phone number recorded.');
+                }
+                return;
+            }
             openWAModal(type, id, record);
         }
 

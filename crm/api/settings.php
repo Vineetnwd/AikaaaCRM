@@ -93,7 +93,7 @@ try {
                 'smtp_email' => $input['smtp_email'] ?? '',
                 'smtp_password' => $input['smtp_password'] ?? '',
                 'smtp_secure' => $input['smtp_secure'] ?? 'tls',
-                'company_name' => Auth::company()['name'] ?? 'Aikaa CRM'
+                'company_name' => Auth::company()['name'] ?? 'Aikaaa CRM'
             ];
             
             $to = $_SESSION['user']['email'] ?? '';
@@ -102,7 +102,7 @@ try {
                 exit;
             }
             
-            $subject = "SMTP Mailer Connection Test - Aikaa CRM";
+            $subject = "SMTP Mailer Connection Test - Aikaaa CRM";
             $body = '
             <!DOCTYPE html>
             <html>
@@ -113,7 +113,7 @@ try {
             <body style="font-family: \'Segoe UI\', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; padding: 40px; color: #1e293b;">
                 <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                     <div style="font-size: 24px; font-weight: 800; color: #6366f1; margin-bottom: 16px; letter-spacing: -0.02em;">Connection Successful!</div>
-                    <p style="font-size: 15px; line-height: 1.6; color: #475569; margin-bottom: 24px;">Congratulations! This test email confirms that your SMTP Configuration in <strong>Aikaa CRM</strong> is fully authenticated and operational.</p>
+                    <p style="font-size: 15px; line-height: 1.6; color: #475569; margin-bottom: 24px;">Congratulations! This test email confirms that your SMTP Configuration in <strong>Aikaaa CRM</strong> is fully authenticated and operational.</p>
                     
                     <div style="background-color: #f1f5f9; border-radius: 10px; padding: 16px 20px; font-size: 13px; line-height: 1.5; color: #475569; margin-bottom: 24px;">
                         <strong style="display:block; margin-bottom: 8px; color: #0f172a; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em;">SMTP Configuration Verified:</strong>
@@ -146,6 +146,21 @@ try {
         }
 
         if (!empty($input)) {
+            // Check WhatsApp Pro requirement
+            $waKeys = ['whatsapp_access_token', 'whatsapp_number', 'whatsapp_phone_number_id', 'whatsapp_business_account_id'];
+            $attemptingWaUpdate = false;
+            foreach ($waKeys as $k) {
+                if (isset($input[$k]) && trim((string)$input[$k]) !== '') {
+                    $attemptingWaUpdate = true;
+                    break;
+                }
+            }
+            if ($attemptingWaUpdate && !Auth::canIntegrateCustomWhatsApp()) {
+                http_response_code(403);
+                echo json_encode(['error' => 'Custom WhatsApp API Integration is available exclusively on the Pro Plan. Please upgrade to Pro to integrate your own keys.']);
+                exit;
+            }
+
             // Only allow updating current company
             $allowed = ['name', 'address', 'gst_number', 'invoice_terms', 'quotation_terms', 'bank_details', 'smtp_host', 'smtp_port', 'smtp_email', 'smtp_password', 'smtp_secure', 'whatsapp_access_token', 'whatsapp_phone_number_id', 'whatsapp_business_account_id', 'whatsapp_number', 'whatsapp_default_template', 'whatsapp_default_mapping', 'whatsapp_header_image'];
             $data = array_intersect_key($input, array_flip($allowed));

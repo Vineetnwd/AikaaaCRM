@@ -28,7 +28,7 @@ $path = $path ?? '';
     <?php 
     $company = \Core\Auth::company();
     $logo = ($company && $company['logo_path']) ? APP_URL . '/public/' . $company['logo_path'] : '';
-    $company_name = $company['name'] ?? 'Aikaa CRM';
+    $company_name = $company['name'] ?? 'Aikaaa CRM';
     ?>
     <div
         style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; padding: 0 0.5rem;">

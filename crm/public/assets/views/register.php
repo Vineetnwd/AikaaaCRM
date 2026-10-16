@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register | Aikaa CRM</title>
+    <title>Register | Aikaaa CRM</title>
     <link rel="stylesheet" href="<?= APP_URL ?>/public/assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <style>
@@ -223,7 +223,7 @@
     <div class="register-card">
         <div class="logo-section">
             <a href="#" class="register-logo">
-                <i class="fas fa-rocket"></i> Aikaa CRM
+                <i class="fas fa-rocket"></i> Aikaaa CRM
             </a>
         </div>
         

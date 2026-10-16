@@ -252,7 +252,7 @@ export default function LoginScreen() {
             <View style={styles.footerRow}>
               <Ionicons name="lock-closed" size={12} color="#94a3b8" />
               <Text style={styles.footerText}>
-                Secured Enterprise Access • Aikaa CRM v1.0
+                Secured Enterprise Access • Aikaaa CRM v1.0
               </Text>
             </View>
           </View>

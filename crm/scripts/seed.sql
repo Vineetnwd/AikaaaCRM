@@ -1,8 +1,8 @@
-USE aikaa_crm;
+USE aikaaa_crm;
 
 -- Seed a test company
 INSERT INTO companies (name, subdomain, plan, status) VALUES 
-('Aikaa Demo', 'demo', 'pro', 'active');
+('Aikaaa Demo', 'demo', 'pro', 'active');
 
 -- Get the ID of the inserted company (assuming it's 1)
 SET @company_id = LAST_INSERT_ID();

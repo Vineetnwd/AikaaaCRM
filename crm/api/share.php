@@ -56,7 +56,7 @@ try {
         'smtp_email' => $company['smtp_email'] ?? '',
         'smtp_password' => $company['smtp_password'] ?? '',
         'smtp_secure' => $company['smtp_secure'] ?? 'tls',
-        'company_name' => $company['name'] ?? 'Aikaa CRM'
+        'company_name' => $company['name'] ?? 'Aikaaa CRM'
     ];
 
     $has_smtp = (!empty($smtp['smtp_host']) && !empty($smtp['smtp_email']) && !empty($smtp['smtp_password']));
@@ -270,7 +270,32 @@ try {
         if (!$invoice) throw new Exception("Invoice not found or access denied");
         if (empty($invoice['client_mobile'])) throw new Exception("Client does not have a mobile number specified");
 
-        if (empty($company['whatsapp_access_token']) || empty($company['whatsapp_number'])) {
+        $quota = \Core\Auth::getWhatsAppQuota($company);
+        if (!$quota['unlimited'] && $quota['remaining'] <= 0) {
+            throw new Exception("WhatsApp message limit reached ({$quota['sent']}/{$quota['limit']} sent). Please upgrade to the Pro Plan to integrate your own WhatsApp API keys for unlimited messaging.");
+        }
+
+        $accessToken = $company['whatsapp_access_token'] ?? '';
+        $fromNumber = trim($company['whatsapp_number'] ?? '');
+        $templateName = $company['whatsapp_default_template'] ?? '';
+        $mapping = array_map('trim', explode(',', $company['whatsapp_default_mapping'] ?? ''));
+
+        if (empty($accessToken) || empty($fromNumber)) {
+            try {
+                $sysRow = $db->fetchOne("SELECT setting_value FROM website_settings WHERE setting_key = 'system_whatsapp_config'");
+                if ($sysRow && !empty($sysRow['setting_value'])) {
+                    $sysWA = json_decode($sysRow['setting_value'], true) ?: [];
+                    if (!empty($sysWA['access_token']) && !empty($sysWA['number'])) {
+                        $accessToken = $sysWA['access_token'];
+                        $fromNumber = $sysWA['number'];
+                        if (empty($templateName)) $templateName = $sysWA['template'] ?? 'info_update779';
+                        if (empty($company['whatsapp_default_mapping'])) $mapping = array_map('trim', explode(',', $sysWA['mapping'] ?? 'name,service,status'));
+                    }
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        if (empty($accessToken) || empty($fromNumber)) {
             throw new Exception("WhatsApp API settings not configured");
         }
 
@@ -291,16 +316,13 @@ try {
         
         $printUrl = APP_URL . "/public/assets/views/invoice_print.php?id=" . $invoice['id'] . "&token=" . md5($invoice['id'] . 'your-very-secure-secret-key-123456');
 
-        $fromNumber = trim($company['whatsapp_number']);
         if (!empty($fromNumber) && $fromNumber[0] !== '+') {
             $fromNumber = '+' . ltrim($fromNumber, '+');
         }
 
-        $templateName = $company['whatsapp_default_template'];
         if (empty($templateName)) {
             throw new Exception("No default WhatsApp template configured in settings.");
         }
-        $mapping = array_map('trim', explode(',', $company['whatsapp_default_mapping'] ?? ''));
         
         $dynamicData = [
             'name' => trim($invoice['client_name']) ?: 'Customer',
@@ -349,7 +371,7 @@ try {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "apikey: " . $company['whatsapp_access_token'],
+            "apikey: " . $accessToken,
             "Content-Type: application/json"
         ]);
 
@@ -358,6 +380,9 @@ try {
         curl_close($ch);
 
         if ($httpcode >= 200 && $httpcode < 300) {
+            if (!$quota['unlimited']) {
+                $db->query("UPDATE companies SET whatsapp_messages_sent = COALESCE(whatsapp_messages_sent, 0) + 1 WHERE id = ?", [$company_id]);
+            }
             echo json_encode(['success' => true, 'message' => 'Invoice sent via WhatsApp API successfully']);
             exit;
         } else {
@@ -381,7 +406,7 @@ try {
 
         if (!$mailSent) {
             // Fallback to PHP mail()
-            $fromName = !empty($smtp['company_name']) ? $smtp['company_name'] : ($company['name'] ?? 'Aikaa CRM');
+            $fromName = !empty($smtp['company_name']) ? $smtp['company_name'] : ($company['name'] ?? 'Aikaaa CRM');
             $fromEmail = !empty($smtp['smtp_email']) ? $smtp['smtp_email'] : 'noreply@aikocrm.com';
             $headers = "MIME-Version: 1.0\r\n";
             $headers .= "Content-type: text/html; charset=UTF-8\r\n";

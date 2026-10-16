@@ -56,13 +56,13 @@
                 <ul>
                     <?php if (!empty($nav_links)): ?>
                         <?php foreach ($nav_links as $link): ?>
-                            <li><a href="<?php echo htmlspecialchars($link['url']); ?>"><?php echo htmlspecialchars($link['label']); ?></a></li>
+                            <li><a href="<?php echo htmlspecialchars(web_url($link['url'])); ?>"><?php echo htmlspecialchars($link['label']); ?></a></li>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <li><a href="index.php">Home</a></li>
-                        <li><a href="about.php">About Us</a></li>
-                        <li><a href="plan.php">Pricing</a></li>
-                        <li><a href="contact.php">Contact</a></li>
+                        <li><a href="<?php echo web_url('index.php'); ?>">Home</a></li>
+                        <li><a href="<?php echo web_url('about.php'); ?>">About Us</a></li>
+                        <li><a href="<?php echo web_url('plan.php'); ?>">Pricing</a></li>
+                        <li><a href="<?php echo web_url('contact.php'); ?>">Contact</a></li>
                     <?php endif; ?>
                 </ul>
             </div>
@@ -71,11 +71,11 @@
             <div class="footer-col">
                 <h4>Support</h4>
                 <ul>
-                    <li><a href="contact.php">Contact Us</a></li>
-                    <li><a href="documentation.php">Help Center</a></li>
-                    <li><a href="documentation.php">Documentation</a></li>
-                    <li><a href="privacy-policy.php">Privacy Policy</a></li>
-                    <li><a href="terms-of-service.php">Terms of Service</a></li>
+                    <li><a href="<?php echo web_url('contact.php'); ?>">Contact Us</a></li>
+                    <li><a href="<?php echo web_url('documentation.php'); ?>">Help Center</a></li>
+                    <li><a href="<?php echo web_url('documentation.php'); ?>">Documentation</a></li>
+                    <li><a href="<?php echo web_url('privacy-policy.php'); ?>">Privacy Policy</a></li>
+                    <li><a href="<?php echo web_url('terms-of-service.php'); ?>">Terms of Service</a></li>
                 </ul>
             </div>
 
@@ -83,8 +83,8 @@
             <div class="footer-col">
                 <h4>Account</h4>
                 <ul>
-                    <li><a href="signup.php">Register Company</a></li>
-                    <li><a href="/crm/">Login to Dashboard</a></li>
+                    <li><a href="<?php echo web_url('signup.php'); ?>">Register Company</a></li>
+                    <li><a href="<?php echo defined('APP_URL') ? APP_URL . '/public/index.php/login' : web_url('crm/public/index.php/login'); ?>">Login to Dashboard</a></li>
                 </ul>
 
                 <?php if ($contact_email || $contact_phone || $contact_whatsapp || $contact_address || $contact_hours): ?>

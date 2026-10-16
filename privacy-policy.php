@@ -17,7 +17,7 @@
                 
                 <p style="color: var(--text-muted); margin-bottom: 2rem;">
                     <strong>Effective Date:</strong> <?php echo date('F j, Y'); ?><br>
-                    Welcome to Aikaa CRM. Your privacy is critical to us. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website or use our cloud-based CRM software and services. Please read this privacy policy carefully to understand our practices regarding your personal data.
+                    Welcome to Aikaaa CRM. Your privacy is critical to us. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website or use our cloud-based CRM software and services. Please read this privacy policy carefully to understand our practices regarding your personal data.
                 </p>
 
                 <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.25rem; font-weight: 800; margin-bottom: 1rem; color: var(--primary);">1. Information We Collect</h3>
@@ -26,7 +26,7 @@
                 </p>
                 <ul style="color: var(--text-muted); margin-bottom: 1.5rem; padding-left: 1.5rem;">
                     <li style="margin-bottom: 0.5rem;"><strong>Account Data:</strong> Name, email address, phone number, company name, and billing information.</li>
-                    <li style="margin-bottom: 0.5rem;"><strong>CRM Data:</strong> Any leads, customer details, invoices, and performance data you input into the Aikaa CRM system.</li>
+                    <li style="margin-bottom: 0.5rem;"><strong>CRM Data:</strong> Any leads, customer details, invoices, and performance data you input into the Aikaaa CRM system.</li>
                     <li style="margin-bottom: 0.5rem;"><strong>Usage Data:</strong> Information about your activity on our platform, such as login times, features accessed, and browser information.</li>
                 </ul>
 

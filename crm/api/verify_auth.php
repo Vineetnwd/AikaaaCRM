@@ -36,8 +36,8 @@ echo json_encode([
     'has_impersonating_param' => $hasImpersonatingParam,
     'jwt_secret_defined' => $jwtDefined,
     'jwt_secret_preview' => $jwtSecret,
-    'jwt_fallback' => 'aikaa_crm_secret_key_2026',
-    'jwt_matches_fallback' => $jwtDefined && JWT_SECRET === 'aikaa_crm_secret_key_2026',
+    'jwt_fallback' => 'aikaaa_crm_secret_key_2026',
+    'jwt_matches_fallback' => $jwtDefined && JWT_SECRET === 'aikaaa_crm_secret_key_2026',
     'opcache_enabled' => $opcacheEnabled,
     'verdict' => $hasOldQuery ? 'SERVER HAS OLD AUTH.PHP — upload the new one!' : ($hasNewQuery ? 'Server has new Auth.php ✓' : 'UNKNOWN — check manually'),
 ], JSON_PRETTY_PRINT);

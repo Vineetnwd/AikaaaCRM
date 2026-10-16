@@ -10,7 +10,7 @@ if (!Auth::isSuperAdmin()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Companies | Aikaa CRM</title>
+    <title>Manage Companies | Aikaaa CRM</title>
     <link rel="stylesheet" href="<?= APP_URL ?>/public/assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -155,6 +155,10 @@ if (!Auth::isSuperAdmin()) {
                 <div class="form-group">
                     <label class="form-label">Expiry Date / Subscription Ends</label>
                     <input type="date" id="f_subscription_ends_at" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">WhatsApp Msg Limit</label>
+                    <input type="number" id="f_whatsapp_limit" class="form-input" placeholder="e.g. 50">
                 </div>
             </div>
             <div class="form-group">
@@ -393,6 +397,7 @@ function openAddModal() {
     document.getElementById('f_subscription_starts_at').value = today;
     document.getElementById('f_plan').value = 'trial';
     document.getElementById('f_subscription_ends_at').value = calculateExpiryDate('trial', today);
+    document.getElementById('f_whatsapp_limit').value = 50;
     document.getElementById('compModal').style.display = 'flex';
 }
 
@@ -415,6 +420,7 @@ async function openEditModal(id) {
         exp = calculateExpiryDate(c.plan, start);
     }
     document.getElementById('f_subscription_ends_at').value = (exp || '').split(' ')[0];
+    document.getElementById('f_whatsapp_limit').value = c.whatsapp_limit ?? 50;
     document.getElementById('f_gst').value = c.gst_number || '';
     document.getElementById('f_address').value = c.address || '';
     document.getElementById('compModal').style.display = 'flex';
@@ -466,6 +472,7 @@ document.getElementById('compForm').addEventListener('submit', async function(e)
         created_at: document.getElementById('f_created_at').value,
         subscription_starts_at: document.getElementById('f_subscription_starts_at').value,
         subscription_ends_at: document.getElementById('f_subscription_ends_at').value,
+        whatsapp_limit: parseInt(document.getElementById('f_whatsapp_limit').value) || 50,
         gst_number: document.getElementById('f_gst').value,
         address: document.getElementById('f_address').value
     };

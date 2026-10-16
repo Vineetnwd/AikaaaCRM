@@ -75,7 +75,7 @@ $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
 // 4. Prepare email content
 $userName = $activeUsers[0]['name'] ?: 'User';
 $loginUrl = APP_URL . '/public/index.php/login';
-$subject = "Your New Aikaa CRM Password";
+$subject = "Your New Aikaaa CRM Password";
 
 // Check if user's company has SMTP configured
 $company = null;
@@ -94,11 +94,11 @@ $htmlBody = '
     <div style="max-width:500px; margin:0 auto; background:#ffffff; border-radius:14px; overflow:hidden; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.06);">
         <div style="background:linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); padding:28px 24px; text-align:center; color:#ffffff;">
             <h1 style="margin:0; font-size:22px; font-weight:800; letter-spacing:-0.02em;">Password Reset</h1>
-            <p style="margin:6px 0 0 0; font-size:13px; opacity:0.9;">Aikaa CRM Account Access</p>
+            <p style="margin:6px 0 0 0; font-size:13px; opacity:0.9;">Aikaaa CRM Account Access</p>
         </div>
         <div style="padding:28px 24px;">
             <p style="margin:0 0 14px 0; font-size:15px; font-weight:600; color:#0f172a;">Hello ' . htmlspecialchars($userName) . ',</p>
-            <p style="margin:0 0 20px 0; font-size:14px; color:#475569; line-height:1.5;">You recently requested a password reset for your Aikaa CRM account. A new temporary password has been generated:</p>
+            <p style="margin:0 0 20px 0; font-size:14px; color:#475569; line-height:1.5;">You recently requested a password reset for your Aikaaa CRM account. A new temporary password has been generated:</p>
             
             <div style="background:#f1f5f9; border:1px dashed #cbd5e1; border-radius:8px; padding:14px 18px; text-align:center; margin-bottom:24px;">
                 <span style="display:block; font-size:11px; text-transform:uppercase; font-weight:700; color:#64748b; letter-spacing:0.05em; margin-bottom:4px;">New Temporary Password</span>
@@ -112,7 +112,7 @@ $htmlBody = '
             <p style="margin:0; font-size:12px; color:#94a3b8; line-height:1.45;">For security, please change your password after logging in from your Profile / Settings. If you did not make this request, please inform your administrator immediately.</p>
         </div>
         <div style="background:#f8fafc; border-top:1px solid #f1f5f9; padding:14px 24px; text-align:center; font-size:12px; color:#94a3b8;">
-            &copy; ' . date('Y') . ' Aikaa CRM. All rights reserved.
+            &copy; ' . date('Y') . ' Aikaaa CRM. All rights reserved.
         </div>
     </div>
 </body>
@@ -131,7 +131,7 @@ if ($company && !empty($company['smtp_host']) && !empty($company['smtp_email']))
             'smtp_email' => $company['smtp_email'],
             'smtp_password' => $company['smtp_password'],
             'smtp_secure' => $company['smtp_secure'],
-            'company_name' => $company['name'] ?? 'Aikaa CRM'
+            'company_name' => $company['name'] ?? 'Aikaaa CRM'
         ]);
         $mailSent = true;
     } catch (\Throwable $e) {
@@ -145,7 +145,7 @@ if (!$mailSent) {
     $fromEmail = 'noreply@' . $fromHost;
     $headers = "MIME-Version: 1.0\r\n";
     $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-    $headers .= "From: Aikaa CRM <{$fromEmail}>\r\n";
+    $headers .= "From: Aikaaa CRM <{$fromEmail}>\r\n";
     $headers .= "Reply-To: {$fromEmail}\r\n";
     $headers .= "X-Mailer: PHP/" . phpversion();
 

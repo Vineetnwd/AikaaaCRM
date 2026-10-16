@@ -1,4 +1,4 @@
-# Aikaa CRM - React Native Mobile Application (Expo SDK 52)
+# Aikaaa CRM - React Native Mobile Application (Expo SDK 52)
 
 A production-ready, feature-complete enterprise CRM mobile application built with **React Native**, **Expo SDK 52**, and **Expo Router**. Designed for seamless lead conversion, service task delivery, quotation/invoice billing, attendance tracking, and executive performance metrics.
 

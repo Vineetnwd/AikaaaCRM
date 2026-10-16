@@ -361,7 +361,7 @@ export default function DashboardScreen() {
     <View style={styles.container}>
       <AppTopBar
         title="Command Center"
-        subtitle={company?.name ? `🏢 ${company.name}` : 'Aikaa CRM Enterprise'}
+        subtitle={company?.name ? `🏢 ${company.name}` : 'Aikaaa CRM Enterprise'}
       />
       <ScrollView
         contentContainerStyle={styles.scrollContent}

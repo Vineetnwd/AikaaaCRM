@@ -10,7 +10,7 @@ $company_id = Auth::companyId();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employees | Aikaa CRM</title>
+    <title>Employees | Aikaaa CRM</title>
     <link rel="stylesheet" href="<?= APP_URL ?>/public/assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer">
@@ -340,7 +340,7 @@ $company_id = Auth::companyId();
             display: none;
             align-items: flex-start;
             justify-content: center;
-            z-index: 1000;
+            z-index: 999999;
             padding: 0.75rem;
             overflow-y: auto;
         }
@@ -419,7 +419,8 @@ $company_id = Auth::companyId();
             <!-- Stat Cards -->
             <div class="stat-cards" id="statCards">
                 <div class="stat-card">
-                    <div class="stat-icon" style="background:#ede9fe;color:var(--accent-hover, #7c3aed);"><i class="fas fa-users"></i></div>
+                    <div class="stat-icon" style="background:#ede9fe;color:var(--accent-hover, #7c3aed);"><i
+                            class="fas fa-users"></i></div>
                     <div>
                         <div class="stat-label">Total</div>
                         <div class="stat-value" id="stat-total">—</div>
@@ -492,6 +493,7 @@ $company_id = Auth::companyId();
                             <th>Target (₹)</th>
                             <th style="min-width: 150px;">Work Status</th>
                             <th>History</th>
+                            <th style="text-align:center;">Target Slide</th>
                             <th style="text-align:right;">Actions</th>
                         </tr>
                     </thead>
@@ -508,7 +510,9 @@ $company_id = Auth::companyId();
                 </table>
             </div>
 
-            <div id="paginationControls" style="margin-top: 1.25rem; display: none; justify-content: space-between; align-items: center; background: white; padding: 1rem; border-radius: 1rem; border: 1px solid var(--border);"></div>
+            <div id="paginationControls"
+                style="margin-top: 1.25rem; display: none; justify-content: space-between; align-items: center; background: white; padding: 1rem; border-radius: 1rem; border: 1px solid var(--border);">
+            </div>
         </main>
     </div>
 
@@ -667,6 +671,13 @@ $company_id = Auth::companyId();
                                 <label>Monthly Target (₹)</label>
                                 <input type="number" id="f_target" class="form-input" placeholder="0.00">
                             </div>
+                            <div class="form-group"
+                                style="margin-bottom:0; display:flex; align-items:center; gap:0.5rem; height:32px;">
+                                <input type="checkbox" id="f_show_in_target_slide" value="1"
+                                    style="width:16px;height:16px;cursor:pointer;">
+                                <label for="f_show_in_target_slide" style="margin:0; cursor:pointer;">Show in Target
+                                    Slide</label>
+                            </div>
                             <div class="form-group" style="margin-bottom:0;">
                                 <label>Daily Work Status</label>
                                 <input type="text" id="f_daily_work_status" class="form-input"
@@ -734,110 +745,111 @@ $company_id = Auth::companyId();
                 </div>
             </form>
         </div>
+    </div> <!-- Close empModal -->
 
 
 
-    <!-- History Modal -->
-    <div id="historyModal" class="modal">
-        <div class="modal-content" style="max-width:500px;">
-            <div class="modal-header">
-                <h3 id="historyTitle" style="margin:0;">Daily Activity</h3>
-                <button class="close-btn" onclick="closeHistoryModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="historyContent"></div>
+        <!-- History Modal -->
+        <div id="historyModal" class="modal">
+            <div class="modal-content" style="max-width:500px;">
+                <div class="modal-header">
+                    <h3 id="historyTitle" style="margin:0;">Daily Activity</h3>
+                    <button class="close-btn" onclick="closeHistoryModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="historyContent"></div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <script>
-        const APP_URL = '<?= APP_URL ?>';
-        const API = '<?= APP_URL ?>/public/index.php/api/employees.php';
-        let allEmployees = [];
-        let currentFilters = { search: '', department: '', status: 'active', limit: '15' };
+        <script>
+            const APP_URL = '<?= APP_URL ?>';
+            const API = '<?= APP_URL ?>/public/index.php/api/employees.php';
+            let allEmployees = [];
+            let currentFilters = { search: '', department: '', status: 'active', limit: '15' };
 
-        const avatarColors = ['var(--accent-hover, #7c3aed)', '#0891b2', '#059669', '#d97706', '#dc2626', '#db2777', '#2563eb'];
-        function getAvatarColor(name) {
-            let h = 0; for (let c of name) h = c.charCodeAt(0) + ((h << 5) - h);
-            return avatarColors[Math.abs(h) % avatarColors.length];
-        }
-        function initials(name) {
-            return name.split(' ').slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
-        }
-
-        const statusLabel = { active: 'Active', inactive: 'Inactive', on_leave: 'On Leave' };
-        const statusClass = { active: 'status-active', inactive: 'status-inactive', on_leave: 'status-on_leave' };
-        const statusDot = { active: '#10b981', inactive: '#ef4444', on_leave: '#f59e0b' };
-
-        async function loadStats() {
-            try {
-                const r = await fetch(API + '?action=stats');
-                if (!r.ok) throw new Error('Stats API failed');
-                const s = await r.json();
-                document.getElementById('stat-total').textContent = s.total || 0;
-                document.getElementById('stat-active').textContent = s.active || 0;
-                document.getElementById('stat-on_leave').textContent = s.on_leave || 0;
-                document.getElementById('stat-inactive').textContent = s.inactive || 0;
-                const comm = parseFloat(s.total_commission || 0);
-                document.getElementById('stat-commission').textContent = comm > 0 ? '₹' + comm.toLocaleString('en-IN', { maximumFractionDigits: 0 }) : '₹0';
-            } catch (e) {
+            const avatarColors = ['var(--accent-hover, #7c3aed)', '#0891b2', '#059669', '#d97706', '#dc2626', '#db2777', '#2563eb'];
+            function getAvatarColor(name) {
+                let h = 0; for (let c of name) h = c.charCodeAt(0) + ((h << 5) - h);
+                return avatarColors[Math.abs(h) % avatarColors.length];
             }
-        }
-
-        async function loadDepartments() {
-            try {
-                const r = await fetch(API + '?action=departments');
-                if (!r.ok) throw new Error('Depts API failed');
-                const depts = await r.json();
-                const sel = document.getElementById('filterDept');
-                depts.forEach(d => {
-                    const o = document.createElement('option');
-                    o.value = d.department; o.textContent = d.department;
-                    sel.appendChild(o);
-                });
-            } catch (e) {
+            function initials(name) {
+                return name.split(' ').slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
             }
-        }
 
-        async function fetchEmployees(page = 1) {
-            currentPage = page;
-            currentFilters.page = page;
-            
-            const perPageElem = document.getElementById('perPage');
-            if (perPageElem) {
-                currentFilters.limit = perPageElem.value;
-            }
-            
-            const params = new URLSearchParams(currentFilters);
-            try {
-                const r = await fetch(API + '?' + params);
-                const result = await r.json();
-                
-                if (result.data) {
-                    allEmployees = result.data;
-                    renderEmployees(result.data);
-                    renderPagination(result);
-                } else {
-                    allEmployees = result;
-                    renderEmployees(result);
-                    const controls = document.getElementById('paginationControls');
-                    if (controls) controls.style.display = 'none';
+            const statusLabel = { active: 'Active', inactive: 'Inactive', on_leave: 'On Leave' };
+            const statusClass = { active: 'status-active', inactive: 'status-inactive', on_leave: 'status-on_leave' };
+            const statusDot = { active: '#10b981', inactive: '#ef4444', on_leave: '#f59e0b' };
+
+            async function loadStats() {
+                try {
+                    const r = await fetch(API + '?action=stats');
+                    if (!r.ok) throw new Error('Stats API failed');
+                    const s = await r.json();
+                    document.getElementById('stat-total').textContent = s.total || 0;
+                    document.getElementById('stat-active').textContent = s.active || 0;
+                    document.getElementById('stat-on_leave').textContent = s.on_leave || 0;
+                    document.getElementById('stat-inactive').textContent = s.inactive || 0;
+                    const comm = parseFloat(s.total_commission || 0);
+                    document.getElementById('stat-commission').textContent = comm > 0 ? '₹' + comm.toLocaleString('en-IN', { maximumFractionDigits: 0 }) : '₹0';
+                } catch (e) {
                 }
-            } catch (err) {
-                console.error(err);
-                document.getElementById('empTableBody').innerHTML = `<tr><td colspan="10"><div class="empty-state" style="color:#ef4444;"><i class="fas fa-exclamation-circle"></i><p>Failed to load employees.</p></div></td></tr>`;
             }
-        }
 
-        function renderPagination(result) {
-            const controls = document.getElementById('paginationControls');
-            if (!result.total_pages || result.total_pages <= 1) {
-                controls.style.display = 'none';
-                return;
+            async function loadDepartments() {
+                try {
+                    const r = await fetch(API + '?action=departments');
+                    if (!r.ok) throw new Error('Depts API failed');
+                    const depts = await r.json();
+                    const sel = document.getElementById('filterDept');
+                    depts.forEach(d => {
+                        const o = document.createElement('option');
+                        o.value = d.department; o.textContent = d.department;
+                        sel.appendChild(o);
+                    });
+                } catch (e) {
+                }
             }
-            controls.style.display = 'flex';
-            
-            let html = `
+
+            async function fetchEmployees(page = 1) {
+                currentPage = page;
+                currentFilters.page = page;
+
+                const perPageElem = document.getElementById('perPage');
+                if (perPageElem) {
+                    currentFilters.limit = perPageElem.value;
+                }
+
+                const params = new URLSearchParams(currentFilters);
+                try {
+                    const r = await fetch(API + '?' + params);
+                    const result = await r.json();
+
+                    if (result.data) {
+                        allEmployees = result.data;
+                        renderEmployees(result.data);
+                        renderPagination(result);
+                    } else {
+                        allEmployees = result;
+                        renderEmployees(result);
+                        const controls = document.getElementById('paginationControls');
+                        if (controls) controls.style.display = 'none';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    document.getElementById('empTableBody').innerHTML = `<tr><td colspan="10"><div class="empty-state" style="color:#ef4444;"><i class="fas fa-exclamation-circle"></i><p>Failed to load employees.</p></div></td></tr>`;
+                }
+            }
+
+            function renderPagination(result) {
+                const controls = document.getElementById('paginationControls');
+                if (!result.total_pages || result.total_pages <= 1) {
+                    controls.style.display = 'none';
+                    return;
+                }
+                controls.style.display = 'flex';
+
+                let html = `
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">Showing ${result.data.length} of ${result.total_records} employees</span>
                     <select id="perPage" onchange="fetchEmployees(1)" style="padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 0.75rem; color: #475569; background: #f8fafc; cursor: pointer;">
@@ -849,65 +861,65 @@ $company_id = Auth::companyId();
                     </select>
                 </div>
             `;
-            html += `<div style="display: flex; gap: 0.5rem; align-items: center;">`;
-            
-            if (currentPage > 1) {
-                html += `<button onclick="fetchEmployees(${currentPage - 1})" class="btn btn-ghost" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.75rem; color: #0f172a;"><i class="fas fa-chevron-left"></i></button>`;
-            }
-            
-            let start_page = Math.max(1, currentPage - 2);
-            let end_page = Math.min(result.total_pages, currentPage + 2);
-            
-            if (end_page - start_page < 4) {
-                if (start_page === 1) {
-                    end_page = Math.min(result.total_pages, 5);
-                } else if (end_page === result.total_pages) {
-                    start_page = Math.max(1, result.total_pages - 4);
+                html += `<div style="display: flex; gap: 0.5rem; align-items: center;">`;
+
+                if (currentPage > 1) {
+                    html += `<button onclick="fetchEmployees(${currentPage - 1})" class="btn btn-ghost" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.75rem; color: #0f172a;"><i class="fas fa-chevron-left"></i></button>`;
                 }
-            }
-            
-            for (let i = start_page; i <= end_page; i++) {
-                let isCurrent = i === currentPage;
-                let btnClass = isCurrent ? 'btn-primary' : 'btn-ghost';
-                let bgStyle = isCurrent ? `background: var(--primary); border: 1px solid var(--primary); color: white;` : `background: transparent; border: 1px solid #e2e8f0; color: #0f172a;`;
-                html += `<button onclick="fetchEmployees(${i})" class="btn ${btnClass}" style="padding: 0.5rem 0.8rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; ${bgStyle}">${i}</button>`;
-            }
-            
-            if (currentPage < result.total_pages) {
-                html += `<button onclick="fetchEmployees(${currentPage + 1})" class="btn btn-ghost" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.75rem; color: #0f172a;"><i class="fas fa-chevron-right"></i></button>`;
-            }
-            
-            html += `</div>`;
-            controls.innerHTML = html;
-        }
 
-        function renderEmployees(employees) {
-            const container = document.getElementById('empTableBody');
-            if (!employees || employees.length === 0) {
-                container.innerHTML = '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-folder-open"></i><p>No employees found matching your criteria.</p></div></td></tr>';
-                return;
+                let start_page = Math.max(1, currentPage - 2);
+                let end_page = Math.min(result.total_pages, currentPage + 2);
+
+                if (end_page - start_page < 4) {
+                    if (start_page === 1) {
+                        end_page = Math.min(result.total_pages, 5);
+                    } else if (end_page === result.total_pages) {
+                        start_page = Math.max(1, result.total_pages - 4);
+                    }
+                }
+
+                for (let i = start_page; i <= end_page; i++) {
+                    let isCurrent = i === currentPage;
+                    let btnClass = isCurrent ? 'btn-primary' : 'btn-ghost';
+                    let bgStyle = isCurrent ? `background: var(--primary); border: 1px solid var(--primary); color: white;` : `background: transparent; border: 1px solid #e2e8f0; color: #0f172a;`;
+                    html += `<button onclick="fetchEmployees(${i})" class="btn ${btnClass}" style="padding: 0.5rem 0.8rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; ${bgStyle}">${i}</button>`;
+                }
+
+                if (currentPage < result.total_pages) {
+                    html += `<button onclick="fetchEmployees(${currentPage + 1})" class="btn btn-ghost" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.75rem; color: #0f172a;"><i class="fas fa-chevron-right"></i></button>`;
+                }
+
+                html += `</div>`;
+                controls.innerHTML = html;
             }
 
-            const attendanceColors = {
-                'Present': '#d1fae5',
-                'Absent': '#fee2e2',
-                'Half Day': '#fef3c7',
-                'On Leave': '#fef3c7',
-                'Late': '#ffedd5'
-            };
-            const attendanceText = {
-                'Present': '#065f46',
-                'Absent': '#991b1b',
-                'Half Day': '#92400e',
-                'On Leave': '#92400e',
-            };
+            function renderEmployees(employees) {
+                const container = document.getElementById('empTableBody');
+                if (!employees || employees.length === 0) {
+                    container.innerHTML = '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-folder-open"></i><p>No employees found matching your criteria.</p></div></td></tr>';
+                    return;
+                }
 
-            try {
-                container.innerHTML = employees.map((e, idx) => {
-                    const todayTarget = (parseInt(e.today_leads_target || 0) + parseInt(e.today_tasks_assigned || 0) + parseInt(e.today_tasks_delivery || 0));
-                    const todayUpdates = (parseInt(e.today_leads_updated || 0) + parseInt(e.today_tasks_updated || 0));
+                const attendanceColors = {
+                    'Present': '#d1fae5',
+                    'Absent': '#fee2e2',
+                    'Half Day': '#fef3c7',
+                    'On Leave': '#fef3c7',
+                    'Late': '#ffedd5'
+                };
+                const attendanceText = {
+                    'Present': '#065f46',
+                    'Absent': '#991b1b',
+                    'Half Day': '#92400e',
+                    'On Leave': '#92400e',
+                };
 
-                    return `
+                try {
+                    container.innerHTML = employees.map((e, idx) => {
+                        const todayTarget = (parseInt(e.today_leads_target || 0) + parseInt(e.today_tasks_assigned || 0) + parseInt(e.today_tasks_delivery || 0));
+                        const todayUpdates = (parseInt(e.today_leads_updated || 0) + parseInt(e.today_tasks_updated || 0));
+
+                        return `
         <tr>
             <td style="color:#94a3b8; font-weight:700;">${((currentPage - 1) * 10) + idx + 1}</td>
             <td>
@@ -930,9 +942,17 @@ $company_id = Auth::companyId();
                 </span>
             </td>
             <td>
-                <div style="display:flex; flex-direction:column; gap:0.25rem; cursor:pointer;" onclick="viewTarget(${e.id})" title="Click to view target details">
-                    <span style="font-weight:800; color:var(--primary, #6366f1); font-size:1rem;">${todayTarget}</span>
-                    ${e.target > 0 ? `<span style="font-size:0.65rem; color:#059669; font-weight:600;">(Plan: ₹${Number(e.target).toLocaleString('en-IN')})</span>` : ''}
+                <div style="display:flex; flex-direction:column; gap:0.2rem; cursor:pointer;" onclick="viewTarget(${e.id})" title="Click to view target details">
+                    ${e.target > 0 ? (() => {
+                                const billing = Number(e.monthly_billing || 0);
+                                const target = Number(e.target);
+                                const pct = Math.min(100, Math.round((billing / target) * 100));
+                                const color = pct >= 100 ? '#059669' : pct >= 50 ? '#f59e0b' : '#ef4444';
+                                return `
+                            <span style="font-weight:800; color:${color}; font-size:0.95rem;">₹${billing.toLocaleString('en-IN')}</span>
+                            <span style="font-size:0.65rem; color:#94a3b8; font-weight:600;">Plan: ₹${target.toLocaleString('en-IN')}</span>
+                        `;
+                            })() : `<span style="color:#cbd5e1; font-size:0.85rem;">No target</span>`}
                 </div>
             </td>
             <td>
@@ -943,10 +963,13 @@ $company_id = Auth::companyId();
             <td>
                 <div style="display:flex; align-items:center; gap:0.5rem;">
                     <div style="font-weight:800; color:#0f172a;">${todayUpdates}</div>
-                    <button class="icon-btn" onclick="viewHistory(${e.id})" title="View Today's Updates" style="${todayUpdates > 0 ? 'color:var(--primary, #6366f1); border-color:var(--primary, #6366f1);' : ''}">
+                    <button type="button" class="icon-btn" onclick="viewHistory(${e.id})" title="View Today's Updates" style="${todayUpdates > 0 ? 'color:var(--primary, #6366f1); border-color:var(--primary, #6366f1);' : ''}">
                         <i class="fas fa-history"></i>
                     </button>
                 </div>
+            </td>
+            <td style="text-align:center;">
+                <input type="checkbox" ${e.show_in_target_slide == 1 ? 'checked' : ''} onchange="toggleTargetSlide(${e.id}, this.checked)" style="width:16px;height:16px;cursor:pointer;">
             </td>
             <td>
                 <div class="row-actions">
@@ -957,112 +980,114 @@ $company_id = Auth::companyId();
                 </div>
                 </tr>
             `;
-                }).join('');
-            } catch (renderErr) {
-                console.error('Render error:', renderErr);
-                container.innerHTML = `<tr><td colspan="9"><div class="empty-state" style="color:#ef4444;"><i class="fas fa-exclamation-circle"></i><p>Rendering error: ${renderErr.message}</p></div></td></tr>`;
+                    }).join('');
+                } catch (renderErr) {
+                    console.error('Render error:', renderErr);
+                    container.innerHTML = `<tr><td colspan="10"><div class="empty-state" style="color:#ef4444;"><i class="fas fa-exclamation-circle"></i><p>Rendering error: ${renderErr.message}</p></div></td></tr>`;
+                }
             }
-        }
 
-        function fmtDate(d) {
-            if (!d) return '—';
-            const dt = new Date(d);
-            return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-        }
-        function escHtml(s) {
-            const div = document.createElement('div'); div.textContent = s; return div.innerHTML;
-        }
-
-        function openAddModal() {
-            document.getElementById('modalTitle').textContent = 'Add Employee';
-            document.getElementById('empId').value = '';
-            document.getElementById('empForm').reset();
-            document.getElementById('loginFields').style.display = 'block';
-            document.getElementById('f_user_password').required = true;
-            document.getElementById('f_user_password').value = '';
-            document.getElementById('f_user_role').value = 'executive';
-            document.getElementById('f_photo').value = '';
-            document.getElementById('photoPreview').style.display = 'none';
-            document.getElementById('photoInput').value = '';
-            document.getElementById('empModal').style.display = 'flex';
-        }
-
-        async function openEditModal(id) {
-            const r = await fetch(API + '?id=' + id);
-            const e = await r.json();
-            document.getElementById('modalTitle').textContent = 'Edit Employee';
-            document.getElementById('empId').value = e.id;
-            document.getElementById('loginFields').style.display = 'none';
-            document.getElementById('f_user_password').required = false;
-            document.getElementById('f_user_password').value = '';
-            document.getElementById('f_user_role').value = e.user_role || 'executive';
-            document.getElementById('f_name').value = e.name || '';
-            document.getElementById('f_employee_id').value = e.employee_id || '';
-            document.getElementById('f_email').value = e.email || '';
-            document.getElementById('f_mobile').value = e.mobile || '';
-            document.getElementById('f_designation').value = e.designation || '';
-            document.getElementById('f_department').value = e.department || '';
-            document.getElementById('f_date_of_joining').value = e.date_of_joining || '';
-            document.getElementById('f_date_of_birth').value = e.date_of_birth || '';
-            document.getElementById('f_gender').value = e.gender || '';
-            document.getElementById('f_salary').value = e.salary || '';
-            document.getElementById('f_commission_type').value = e.commission_type || 'percentage';
-            document.getElementById('f_commission_rate').value = e.commission_rate || '';
-            document.getElementById('f_post_target_commission_rate').value = e.post_target_commission_rate || '';
-            document.getElementById('f_status').value = e.status || 'active';
-            document.getElementById('f_address').value = e.address || '';
-            document.getElementById('f_notes').value = e.notes || '';
-
-            document.getElementById('f_photo').value = e.photo || '';
-            const preview = document.getElementById('photoPreview');
-            if (e.photo) {
-                preview.src = e.photo.startsWith('http') ? e.photo : (e.photo.includes('/') ? APP_URL + '/public/' + e.photo : APP_URL + '/public/uploads/profiles/' + e.photo);
-                preview.style.display = 'block';
-            } else {
-                preview.src = '';
-                preview.style.display = 'none';
+            function fmtDate(d) {
+                if (!d) return '—';
+                const dt = new Date(d);
+                return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
             }
-            document.getElementById('photoInput').value = '';
-            document.getElementById('f_attendance').value = e.attendance || 'Absent';
-            document.getElementById('f_target').value = e.target || '';
-            document.getElementById('f_daily_work_status').value = e.daily_work_status || '';
-            document.getElementById('f_daily_work_history').value = e.daily_work_history || '';
+            function escHtml(s) {
+                const div = document.createElement('div'); div.textContent = s; return div.innerHTML;
+            }
 
-            document.getElementById('f_bank_name').value = e.bank_name || '';
-            document.getElementById('f_account_holder_name').value = e.account_holder_name || '';
-            document.getElementById('f_account_number').value = e.account_number || '';
-            document.getElementById('f_ifsc_code').value = e.ifsc_code || '';
-            document.getElementById('f_upi_id').value = e.upi_id || '';
+            function openAddModal() {
+                document.getElementById('modalTitle').textContent = 'Add Employee';
+                document.getElementById('empId').value = '';
+                document.getElementById('empForm').reset();
+                document.getElementById('loginFields').style.display = 'block';
+                document.getElementById('f_user_password').required = true;
+                document.getElementById('f_user_password').value = '';
+                document.getElementById('f_user_role').value = 'executive';
+                document.getElementById('f_photo').value = '';
+                document.getElementById('photoPreview').style.display = 'none';
+                document.getElementById('photoInput').value = '';
+                document.getElementById('f_show_in_target_slide').checked = false;
+                document.getElementById('empModal').style.display = 'flex';
+            }
 
-            updateRateLabel();
-            document.getElementById('empModal').style.display = 'flex';
-        }
+            async function openEditModal(id) {
+                const r = await fetch(API + '?id=' + id);
+                const e = await r.json();
+                document.getElementById('modalTitle').textContent = 'Edit Employee';
+                document.getElementById('empId').value = e.id;
+                document.getElementById('loginFields').style.display = 'none';
+                document.getElementById('f_user_password').required = false;
+                document.getElementById('f_user_password').value = '';
+                document.getElementById('f_user_role').value = e.user_role || 'executive';
+                document.getElementById('f_name').value = e.name || '';
+                document.getElementById('f_employee_id').value = e.employee_id || '';
+                document.getElementById('f_email').value = e.email || '';
+                document.getElementById('f_mobile').value = e.mobile || '';
+                document.getElementById('f_designation').value = e.designation || '';
+                document.getElementById('f_department').value = e.department || '';
+                document.getElementById('f_date_of_joining').value = e.date_of_joining || '';
+                document.getElementById('f_date_of_birth').value = e.date_of_birth || '';
+                document.getElementById('f_gender').value = e.gender || '';
+                document.getElementById('f_salary').value = e.salary || '';
+                document.getElementById('f_commission_type').value = e.commission_type || 'percentage';
+                document.getElementById('f_commission_rate').value = e.commission_rate || '';
+                document.getElementById('f_post_target_commission_rate').value = e.post_target_commission_rate || '';
+                document.getElementById('f_status').value = e.status || 'active';
+                document.getElementById('f_address').value = e.address || '';
+                document.getElementById('f_notes').value = e.notes || '';
 
-        function closeModal() {
-            document.getElementById('empModal').style.display = 'none';
-        }
+                document.getElementById('f_photo').value = e.photo || '';
+                const preview = document.getElementById('photoPreview');
+                if (e.photo) {
+                    preview.src = e.photo.startsWith('http') ? e.photo : (e.photo.includes('/') ? APP_URL + '/public/' + e.photo : APP_URL + '/public/uploads/profiles/' + e.photo);
+                    preview.style.display = 'block';
+                } else {
+                    preview.src = '';
+                    preview.style.display = 'none';
+                }
+                document.getElementById('photoInput').value = '';
+                document.getElementById('f_attendance').value = e.attendance || 'Absent';
+                document.getElementById('f_target').value = e.target || '';
+                document.getElementById('f_show_in_target_slide').checked = (e.show_in_target_slide == 1);
+                document.getElementById('f_daily_work_status').value = e.daily_work_status || '';
+                document.getElementById('f_daily_work_history').value = e.daily_work_history || '';
 
-        function viewHistory(id) {
-            try {
-                const emp = allEmployees.find(e => e.id == id);
-                if (!emp) return;
+                document.getElementById('f_bank_name').value = e.bank_name || '';
+                document.getElementById('f_account_holder_name').value = e.account_holder_name || '';
+                document.getElementById('f_account_number').value = e.account_number || '';
+                document.getElementById('f_ifsc_code').value = e.ifsc_code || '';
+                document.getElementById('f_upi_id').value = e.upi_id || '';
 
-                const modal = document.getElementById('historyModal');
-                if (!modal) return;
+                updateRateLabel();
+                document.getElementById('empModal').style.display = 'flex';
+            }
 
-                document.getElementById('historyTitle').textContent = `Daily Activity: ${emp.name}`;
-                const content = document.getElementById('historyContent');
+            function closeModal() {
+                document.getElementById('empModal').style.display = 'none';
+            }
 
-                let html = '';
+            function viewHistory(id) { 
+                try {
+                    const emp = allEmployees.find(e => e.id == id);
+                    if (!emp) return;
 
-                if (emp.today_lead_details || emp.today_task_details) {
-                    if (emp.today_lead_details) {
-                        html += `<div class="history-section">
+                    const modal = document.getElementById('historyModal');
+                    if (!modal) return;
+
+                    document.getElementById('historyTitle').textContent = `Daily Activity: ${emp.name}`;
+                    const content = document.getElementById('historyContent');
+
+                    let html = '';
+
+                    if (emp.today_lead_details || emp.today_task_details) {
+                        if (emp.today_lead_details) {
+                            html += `<div class="history-section">
                             <div class="h-label"><i class="fas fa-bullseye"></i> Updated Leads</div>
                             <div class="h-items">
-                                ${emp.today_lead_details.split(';;').map((row, i) => {
-                            const [name, mobile, req] = row.split('||');
-                            return `
+                                ${String(emp.today_lead_details).split(';;').map((row, i) => {
+                                const [name, mobile, req] = row.split('||');
+                                return `
                                     <div class="h-item" style="display:flex; flex-direction:column; gap:0.25rem;">
                                         <div style="display:flex; justify-content:space-between; align-items:center;">
                                             <span style="font-weight:700; color:#0f172a;">${i + 1}. ${escHtml(name)}</span>
@@ -1072,60 +1097,60 @@ $company_id = Auth::companyId();
                                             <strong>Requirement:</strong> ${escHtml(req)}
                                         </div>` : ''}
                                     </div>`;
-                        }).join('')}
+                            }).join('')}
                             </div>
                         </div>`;
-                    }
-                    if (emp.today_task_details) {
-                        html += `<div class="history-section">
+                        }
+                        if (emp.today_task_details) {
+                            html += `<div class="history-section">
                             <div class="h-label"><i class="fas fa-tasks"></i> Updated Tasks</div>
                             <div class="h-items">
-                                ${emp.today_task_details.split(';;').map((t, i) => `
+                                ${String(emp.today_task_details).split(';;').map((t, i) => `
                                     <div class="h-item">
                                         <span style="color:#64748b; margin-right:0.5rem;">${i + 1}.</span> ${escHtml(t)}
                                     </div>`).join('')}
                             </div>
                         </div>`;
+                        }
+                    } else {
+                        html += `<div style="text-align:center; padding:2rem; color:#94a3b8;"><i class="fas fa-info-circle" style="font-size:2rem; opacity:0.2; margin-bottom:1rem; display:block;"></i> No updates recorded for today</div>`;
                     }
-                } else {
-                    html += `<div style="text-align:center; padding:2rem; color:#94a3b8;"><i class="fas fa-info-circle" style="font-size:2rem; opacity:0.2; margin-bottom:1rem; display:block;"></i> No updates recorded for today</div>`;
-                }
 
-                if (emp.daily_work_history) {
-                    html += `<div class="history-section" style="border-top:1px dashed #e2e8f0; padding-top:1.25rem; margin-top:1.25rem;">
+                    if (emp.daily_work_history) {
+                        html += `<div class="history-section" style="border-top:1px dashed #e2e8f0; padding-top:1.25rem; margin-top:1.25rem;">
                         <div class="h-label"><i class="fas fa-edit"></i> Manual Progress Logs</div>
                         <div style="font-size:0.85rem; color:#475569; white-space:pre-wrap; line-height:1.6; background:#fdfdfd; padding:1rem; border-radius:10px; border:1px solid #f1f5f9;">${escHtml(emp.daily_work_history)}</div>
                     </div>`;
+                    }
+
+                    content.innerHTML = html;
+                    modal.style.display = 'flex'; 
+                } catch (err) {
+                    console.error('viewHistory error:', err); 
                 }
-
-                content.innerHTML = html;
-                modal.style.display = 'flex';
-            } catch (err) {
-                console.error('viewHistory error:', err);
             }
-        }
 
-        function viewTarget(id) {
-            try {
-                const emp = allEmployees.find(e => e.id == id);
-                if (!emp) return;
+            function viewTarget(id) {
+                try {
+                    const emp = allEmployees.find(e => e.id == id);
+                    if (!emp) return;
 
-                const modal = document.getElementById('historyModal');
-                if (!modal) return;
+                    const modal = document.getElementById('historyModal');
+                    if (!modal) return;
 
-                document.getElementById('historyTitle').textContent = `Targets Today: ${emp.name}`;
-                const content = document.getElementById('historyContent');
+                    document.getElementById('historyTitle').textContent = `Targets Today: ${emp.name}`;
+                    const content = document.getElementById('historyContent');
 
-                let html = '';
+                    let html = '';
 
-                if (emp.today_lead_target_details || emp.today_task_assigned_details || emp.today_task_delivery_details) {
-                    if (emp.today_lead_target_details) {
-                        html += `<div class="history-section">
+                    if (emp.today_lead_target_details || emp.today_task_assigned_details || emp.today_task_delivery_details) {
+                        if (emp.today_lead_target_details) {
+                            html += `<div class="history-section">
                             <div class="h-label"><i class="fas fa-bullseye"></i> Follow-up Leads</div>
                             <div class="h-items">
-                                ${emp.today_lead_target_details.split(';;').map((row, i) => {
-                            const [name, mobile, req] = row.split('||');
-                            return `
+                                ${String(emp.today_lead_target_details).split(';;').map((row, i) => {
+                                const [name, mobile, req] = row.split('||');
+                                return `
                                     <div class="h-item" style="display:flex; flex-direction:column; gap:0.25rem;">
                                         <div style="display:flex; justify-content:space-between; align-items:center;">
                                             <span style="font-weight:700; color:#0f172a;">${i + 1}. ${escHtml(name)}</span>
@@ -1135,178 +1160,202 @@ $company_id = Auth::companyId();
                                             <strong>Requirement:</strong> ${escHtml(req)}
                                         </div>` : ''}
                                     </div>`;
-                        }).join('')}
+                            }).join('')}
                             </div>
                         </div>`;
-                    }
-                    if (emp.today_task_assigned_details) {
-                        html += `<div class="history-section">
+                        }
+                        if (emp.today_task_assigned_details) {
+                            html += `<div class="history-section">
                             <div class="h-label"><i class="fas fa-plus-circle"></i> Tasks Assigned Today</div>
                             <div class="h-items">
-                                ${emp.today_task_assigned_details.split(';;').map((t, i) => `
+                                ${String(emp.today_task_assigned_details).split(';;').map((t, i) => `
                                     <div class="h-item">
                                         <span style="color:#64748b; margin-right:0.5rem;">${i + 1}.</span> ${escHtml(t)}
                                     </div>`).join('')}
                             </div>
                         </div>`;
-                    }
-                    if (emp.today_task_delivery_details) {
-                        html += `<div class="history-section">
+                        }
+                        if (emp.today_task_delivery_details) {
+                            html += `<div class="history-section">
                             <div class="h-label"><i class="fas fa-truck"></i> Tasks Due Today (Delivery)</div>
                             <div class="h-items">
-                                ${emp.today_task_delivery_details.split(';;').map((t, i) => `
+                                ${String(emp.today_task_delivery_details).split(';;').map((t, i) => `
                                     <div class="h-item">
                                         <span style="color:#64748b; margin-right:0.5rem;">${i + 1}.</span> ${escHtml(t)}
                                     </div>`).join('')}
                             </div>
                         </div>`;
+                        }
+                    } else {
+                        html += `<div style="text-align:center; padding:2rem; color:#94a3b8;"><i class="fas fa-calendar-check" style="font-size:2rem; opacity:0.2; margin-bottom:1rem; display:block;"></i> No targets set for today</div>`;
                     }
+
+                    content.innerHTML = html;
+                    modal.style.display = 'flex'; 
+                } catch (err) {
+                    console.error('viewTarget error:', err);
+                }
+            }
+
+            function closeHistoryModal() {
+                document.getElementById('historyModal').style.display = 'none';
+            }
+
+            document.getElementById('historyModal').addEventListener('click', function (e) {
+                if (e.target === this) closeHistoryModal();
+            });
+
+            document.getElementById('empForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const btn = document.getElementById('saveBtn');
+                btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+                const id = document.getElementById('empId').value;
+                const payload = {
+                    name: document.getElementById('f_name').value.trim(),
+                    employee_id: document.getElementById('f_employee_id').value.trim(),
+                    email: document.getElementById('f_email').value.trim(),
+                    mobile: document.getElementById('f_mobile').value.trim(),
+                    designation: document.getElementById('f_designation').value.trim(),
+                    department: document.getElementById('f_department').value.trim(),
+                    date_of_joining: document.getElementById('f_date_of_joining').value,
+                    date_of_birth: document.getElementById('f_date_of_birth').value,
+                    gender: document.getElementById('f_gender').value,
+                    salary: document.getElementById('f_salary').value,
+                    commission_type: document.getElementById('f_commission_type').value,
+                    commission_rate: document.getElementById('f_commission_rate').value,
+                    post_target_commission_rate: document.getElementById('f_post_target_commission_rate').value,
+                    status: document.getElementById('f_status').value,
+                    address: document.getElementById('f_address').value.trim(),
+                    notes: document.getElementById('f_notes').value.trim(),
+                    // New Fields
+                    photo: document.getElementById('f_photo').value.trim(),
+                    attendance: document.getElementById('f_attendance').value,
+                    target: document.getElementById('f_target').value,
+                    show_in_target_slide: document.getElementById('f_show_in_target_slide').checked ? 1 : 0,
+                    daily_work_status: document.getElementById('f_daily_work_status').value.trim(),
+                    daily_work_history: document.getElementById('f_daily_work_history').value.trim(),
+                    bank_name: document.getElementById('f_bank_name').value.trim(),
+                    account_holder_name: document.getElementById('f_account_holder_name').value.trim(),
+                    account_number: document.getElementById('f_account_number').value.trim(),
+                    ifsc_code: document.getElementById('f_ifsc_code').value.trim(),
+                    upi_id: document.getElementById('f_upi_id').value.trim()
+                };
+                if (id) {
+                    payload.id = id;
                 } else {
-                    html += `<div style="text-align:center; padding:2rem; color:#94a3b8;"><i class="fas fa-calendar-check" style="font-size:2rem; opacity:0.2; margin-bottom:1rem; display:block;"></i> No targets set for today</div>`;
+                    payload.user_password = document.getElementById('f_user_password').value;
+                    payload.user_role = document.getElementById('f_user_role').value;
                 }
 
-                content.innerHTML = html;
-                modal.style.display = 'flex';
-            } catch (err) {
-                console.error('viewTarget error:', err);
-            }
-        }
+                const method = id ? 'PUT' : 'POST';
+                const res = await fetch(API, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const result = await res.json();
 
-        function closeHistoryModal() {
-            document.getElementById('historyModal').style.display = 'none';
-        }
+                btn.disabled = false; btn.innerHTML = '<i class="fas fa-save" style="font-size:0.75rem;"></i> Save Employee';
 
-        document.getElementById('historyModal').addEventListener('click', function (e) {
-            if (e.target === this) closeHistoryModal();
-        });
-
-        document.getElementById('empForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const btn = document.getElementById('saveBtn');
-            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
-            const id = document.getElementById('empId').value;
-            const payload = {
-                name: document.getElementById('f_name').value.trim(),
-                employee_id: document.getElementById('f_employee_id').value.trim(),
-                email: document.getElementById('f_email').value.trim(),
-                mobile: document.getElementById('f_mobile').value.trim(),
-                designation: document.getElementById('f_designation').value.trim(),
-                department: document.getElementById('f_department').value.trim(),
-                date_of_joining: document.getElementById('f_date_of_joining').value,
-                date_of_birth: document.getElementById('f_date_of_birth').value,
-                gender: document.getElementById('f_gender').value,
-                salary: document.getElementById('f_salary').value,
-                commission_type: document.getElementById('f_commission_type').value,
-                commission_rate: document.getElementById('f_commission_rate').value,
-                post_target_commission_rate: document.getElementById('f_post_target_commission_rate').value,
-                status: document.getElementById('f_status').value,
-                address: document.getElementById('f_address').value.trim(),
-                notes: document.getElementById('f_notes').value.trim(),
-                // New Fields
-                photo: document.getElementById('f_photo').value.trim(),
-                attendance: document.getElementById('f_attendance').value,
-                target: document.getElementById('f_target').value,
-                daily_work_status: document.getElementById('f_daily_work_status').value.trim(),
-                daily_work_history: document.getElementById('f_daily_work_history').value.trim(),
-                bank_name: document.getElementById('f_bank_name').value.trim(),
-                account_holder_name: document.getElementById('f_account_holder_name').value.trim(),
-                account_number: document.getElementById('f_account_number').value.trim(),
-                ifsc_code: document.getElementById('f_ifsc_code').value.trim(),
-                upi_id: document.getElementById('f_upi_id').value.trim()
-            };
-            if (id) {
-                payload.id = id;
-            } else {
-                payload.user_password = document.getElementById('f_user_password').value;
-                payload.user_role = document.getElementById('f_user_role').value;
-            }
-
-            const method = id ? 'PUT' : 'POST';
-            const res = await fetch(API, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const result = await res.json();
-
-            btn.disabled = false; btn.innerHTML = '<i class="fas fa-save" style="font-size:0.75rem;"></i> Save Employee';
-
-            if (result.success) {
-                closeModal();
-                loadStats();
-                loadDepartments();
-                fetchEmployees(currentPage);
-            } else {
-                alert('Error: ' + (result.error || 'Something went wrong'));
-            }
-        });
-
-        async function deleteEmployee(id, name) {
-            if (!confirm(`Delete "${name}" ? This cannot be undone.`)) return;
-            const res = await fetch(API + '?id=' + id, { method: 'DELETE' });
-            const result = await res.json();
-            if (result.success) { loadStats(); fetchEmployees(1); }
-            else alert('Error: ' + result.error);
-        }
-
-        // Rate label updater
-        function updateRateLabel() {
-            const type = document.getElementById('f_commission_type').value;
-            document.getElementById('rateLabel').textContent = type === 'fixed' ? 'Fixed Amount per Win (₹)' : 'Commission Rate (%)';
-        }
-
-        // Filters
-        let searchTimer;
-        document.getElementById('empSearch').addEventListener('input', function () {
-            clearTimeout(searchTimer);
-            searchTimer = setTimeout(() => { currentFilters.search = this.value; fetchEmployees(1); }, 300);
-        });
-        document.getElementById('filterDept').addEventListener('change', function () {
-            currentFilters.department = this.value; fetchEmployees(1);
-        });
-        document.getElementById('filterStatus').addEventListener('change', function () {
-            currentFilters.status = this.value; fetchEmployees(1);
-        });
-
-        // Close modal on backdrop click
-        document.getElementById('empModal').addEventListener('click', function (e) {
-            if (e.target === this) closeModal();
-        });
-
-        // Upload Employee Photo
-        async function uploadEmployeePhoto(input) {
-            if (!input.files || !input.files[0]) return;
-            const status = document.getElementById('photoUploadStatus');
-            status.style.display = 'inline-block';
-            status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-
-            const formData = new FormData();
-            formData.append('employee_photo', input.files[0]);
-
-            try {
-                const res = await fetch(API, { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('f_photo').value = data.path;
-                    const preview = document.getElementById('photoPreview');
-                    preview.src = APP_URL + '/public/' + data.path;
-                    preview.style.display = 'block';
-                    status.innerHTML = '<i class="fas fa-check" style="color: green;"></i>';
-                    setTimeout(() => status.style.display = 'none', 2000);
+                if (result.success) {
+                    closeModal();
+                    loadStats();
+                    loadDepartments();
+                    fetchEmployees(currentPage);
                 } else {
-                    alert(data.error || 'Upload failed');
+                    alert('Error: ' + (result.error || 'Something went wrong'));
+                }
+            });
+
+            async function deleteEmployee(id, name) {
+                if (!confirm(`Delete "${name}" ? This cannot be undone.`)) return;
+                const res = await fetch(API + '?id=' + id, { method: 'DELETE' });
+                const result = await res.json();
+                if (result.success) { loadStats(); fetchEmployees(1); }
+                else alert('Error: ' + result.error);
+            }
+
+            async function toggleTargetSlide(id, isChecked) {
+                try {
+                    const payload = {
+                        id: id,
+                        show_in_target_slide: isChecked ? 1 : 0
+                    };
+                    const res = await fetch(API, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await res.json();
+                    if (!result.success) {
+                        alert('Error updating Target Slide status: ' + (result.error || 'Unknown error'));
+                        fetchEmployees(currentPage);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Failed to update Target Slide status');
+                    fetchEmployees(currentPage);
+                }
+            }
+
+            // Rate label updater
+            function updateRateLabel() {
+                const type = document.getElementById('f_commission_type').value;
+                document.getElementById('rateLabel').textContent = type === 'fixed' ? 'Fixed Amount per Win (₹)' : 'Commission Rate (%)';
+            }
+
+            // Filters
+            let searchTimer;
+            document.getElementById('empSearch').addEventListener('input', function () {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => { currentFilters.search = this.value; fetchEmployees(1); }, 300);
+            });
+            document.getElementById('filterDept').addEventListener('change', function () {
+                currentFilters.department = this.value; fetchEmployees(1);
+            });
+            document.getElementById('filterStatus').addEventListener('change', function () {
+                currentFilters.status = this.value; fetchEmployees(1);
+            });
+
+            // Close modal on backdrop click
+            document.getElementById('empModal').addEventListener('click', function (e) {
+                if (e.target === this) closeModal();
+            });
+
+            // Upload Employee Photo
+            async function uploadEmployeePhoto(input) {
+                if (!input.files || !input.files[0]) return;
+                const status = document.getElementById('photoUploadStatus');
+                status.style.display = 'inline-block';
+                status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+                const formData = new FormData();
+                formData.append('employee_photo', input.files[0]);
+
+                try {
+                    const res = await fetch(API, { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (data.success) {
+                        document.getElementById('f_photo').value = data.path;
+                        const preview = document.getElementById('photoPreview');
+                        preview.src = APP_URL + '/public/' + data.path;
+                        preview.style.display = 'block';
+                        status.innerHTML = '<i class="fas fa-check" style="color: green;"></i>';
+                        setTimeout(() => status.style.display = 'none', 2000);
+                    } else {
+                        alert(data.error || 'Upload failed');
+                        status.style.display = 'none';
+                        input.value = '';
+                    }
+                } catch (err) {
+                    alert('Error: ' + err.message);
                     status.style.display = 'none';
                     input.value = '';
                 }
-            } catch (err) {
-                alert('Error: ' + err.message);
-                status.style.display = 'none';
-                input.value = '';
             }
-        }
 
-        // Init
-        loadStats();
-        loadDepartments();
-        fetchEmployees();
-    </script>
+            // Init
+            loadStats();
+            loadDepartments();
+            fetchEmployees();
+        </script>
 </body>
 
 </html>

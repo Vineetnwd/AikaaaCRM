@@ -202,7 +202,7 @@ if (!$payment) {
     <div class="receipt-box">
         <div class="header flex">
             <div>
-                <div class="logo">AIKAA CRM</div>
+                <div class="logo">AIKAAA CRM</div>
                 <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Smart Business Solutions</div>
             </div>
             <div style="text-align: right;">

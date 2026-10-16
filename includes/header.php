@@ -5,8 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php
-        echo htmlspecialchars($site_name);
-        if (!empty($data['site_tagline'])) echo ' — ' . htmlspecialchars($data['site_tagline']);
+        if (!empty($page_title)) {
+            echo htmlspecialchars($page_title) . ' | ' . htmlspecialchars($site_name);
+        } else {
+            echo htmlspecialchars($site_name);
+            if (!empty($data['site_tagline'])) echo ' — ' . htmlspecialchars($data['site_tagline']);
+        }
     ?></title>
     <meta name="description" content="<?php echo htmlspecialchars(!empty($data['site_description']) ? $data['site_description'] : $site_name . ' — CRM platform to manage leads, customers, and grow your business.'); ?>">
     <meta property="og:title"       content="<?php echo htmlspecialchars($site_name); ?>">
@@ -18,7 +22,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Cache-busting version from file mtime -->
-    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/style.css'); ?>">
+    <link rel="stylesheet" href="<?php echo web_url('assets/css/style.css'); ?>?v=<?php echo filemtime(__DIR__ . '/../assets/css/style.css'); ?>">
 
     <script>
         window.applyThemeColor = function(primaryHex, secondaryHex) {
@@ -83,7 +87,7 @@
 <!-- ── NAVBAR ──────────────────────────────────── -->
 <nav class="navbar" id="navbar">
     <div class="container">
-        <a href="index.php" class="navbar-brand">
+        <a href="<?php echo web_url('index.php'); ?>" class="navbar-brand">
             <?php if ($logo_url): ?>
                 <img src="<?php echo htmlspecialchars($logo_url); ?>"
                      alt="<?php echo htmlspecialchars($site_name); ?>"
@@ -97,20 +101,20 @@
         <ul class="nav-links" id="navLinks">
             <?php if (!empty($nav_links)): ?>
                 <?php foreach ($nav_links as $link): ?>
-                    <li><a href="<?php echo htmlspecialchars($link['url']); ?>"><?php echo htmlspecialchars($link['label']); ?></a></li>
+                    <li><a href="<?php echo htmlspecialchars(web_url($link['url'])); ?>"><?php echo htmlspecialchars($link['label']); ?></a></li>
                 <?php endforeach; ?>
             <?php else: ?>
-                <li><a href="index.php">Home</a></li>
-                <li><a href="about.php">About</a></li>
-                <li><a href="plan.php">Pricing</a></li>
-                <li><a href="contact.php">Contact</a></li>
-                <li><a href="signup.php">Register Now</a></li>
+                <li><a href="<?php echo web_url('index.php'); ?>">Home</a></li>
+                <li><a href="<?php echo web_url('about.php'); ?>">About</a></li>
+                <li><a href="<?php echo web_url('plan.php'); ?>">Pricing</a></li>
+                <li><a href="<?php echo web_url('contact.php'); ?>">Contact</a></li>
+                <li><a href="<?php echo web_url('signup.php'); ?>">Register Now</a></li>
             <?php endif; ?>
         </ul>
 
         <div class="nav-actions">
-            <a href="/crm/" class="btn btn-outline"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
-            <a href="signup.php" class="btn btn-primary">Register Now <i class="fa-solid fa-arrow-right"></i></a>
+            <a href="<?php echo defined('APP_URL') ? APP_URL . '/public/index.php/login' : web_url('crm/public/index.php/login'); ?>" class="btn btn-outline"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
+            <a href="<?php echo web_url('signup.php'); ?>" class="btn btn-primary">Register Now <i class="fa-solid fa-arrow-right"></i></a>
         </div>
 
         <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">

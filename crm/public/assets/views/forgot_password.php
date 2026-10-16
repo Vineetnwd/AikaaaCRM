@@ -9,7 +9,7 @@ require_once __DIR__ . '/../../../../data.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password | <?= htmlspecialchars($site_name ?? 'Aikaa CRM') ?></title>
+    <title>Forgot Password | <?= htmlspecialchars($site_name ?? 'Aikaaa CRM') ?></title>
     <link rel="stylesheet" href="<?= APP_URL ?>/public/assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <?php if (!empty($favicon_url)): ?>
@@ -129,7 +129,7 @@ require_once __DIR__ . '/../../../../data.php';
             <?php if (!empty($logo_url)): ?>
                 <img src="<?= htmlspecialchars($logo_url) ?>" alt="Logo" style="max-width: 200px; max-height: 80px; object-fit: contain;">
             <?php else: ?>
-                <?= htmlspecialchars($site_name ?? 'Aikaa CRM') ?>
+                <?= htmlspecialchars($site_name ?? 'Aikaaa CRM') ?>
             <?php endif; ?>
         </a>
 

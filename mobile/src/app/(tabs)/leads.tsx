@@ -62,7 +62,7 @@ export default function LeadsScreen() {
     if (!mobile) return;
     const cleanNumber = mobile.replace(/[^0-9]/g, '');
     const phoneWithCountry = cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber;
-    const msg = encodeURIComponent(`Hello ${name || ''}, regarding your inquiry on Aikaa CRM.`);
+    const msg = encodeURIComponent(`Hello ${name || ''}, regarding your inquiry on Aikaaa CRM.`);
     Linking.openURL(`whatsapp://send?phone=${phoneWithCountry}&text=${msg}`).catch(() => {
       Alert.alert('WhatsApp Unavailable', 'Could not launch WhatsApp. Is it installed on your device?');
     });

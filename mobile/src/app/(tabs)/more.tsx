@@ -334,7 +334,7 @@ export default function MoreScreen() {
           <Text style={styles.logoutText}>Sign Out from Account</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionText}>Aikaa CRM Mobile • Version 1.0.0 (Expo)</Text>
+        <Text style={styles.versionText}>Aikaaa CRM Mobile • Version 1.0.0 (Expo)</Text>
       </ScrollView>
 
       {/* Customers List Modal */}

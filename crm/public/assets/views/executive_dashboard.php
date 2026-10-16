@@ -18,10 +18,10 @@ $pendingLeads = 0;
 if ($empId) {
     $emp = $db->fetchOne("SELECT target FROM employees WHERE id = ?", [$empId]);
     $targetAmount = floatval($emp['target'] ?? 0);
-    
+
     $month = date('n');
     $year = date('Y');
-    
+
     // Total Billed (from Invoices linked to leads assigned to this executive)
     $billed = $db->fetchOne("
         SELECT SUM(i.total_amount) as total 
@@ -83,15 +83,16 @@ $recentLeads = $db->fetchAll("
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Executive Dashboard | Aikaa CRM</title>
+    <title>Executive Dashboard | Aikaaa CRM</title>
     <link rel="stylesheet" href="<?= APP_URL ?>/public/assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-        
+
         :root {
             --primary: var(--primary-hover, #4f46e5);
             --success: #10b981;
@@ -100,9 +101,14 @@ $recentLeads = $db->fetchAll("
             --bg-body: #f8fafc;
         }
 
-        body { font-family: 'Outfit', sans-serif; background: var(--bg-body); }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-body);
+        }
 
-        .dashboard-container { padding: 2rem; }
+        .dashboard-container {
+            padding: 2rem;
+        }
 
         .welcome-header {
             margin-bottom: 2.5rem;
@@ -229,8 +235,20 @@ $recentLeads = $db->fetchAll("
             font-size: 1rem;
         }
 
-        .mini-info h4 { margin: 0; font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
-        .mini-info p { margin: 0; font-size: 1.1rem; font-weight: 700; color: #0f172a; }
+        .mini-info h4 {
+            margin: 0;
+            font-size: 0.7rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .mini-info p {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
 
         /* Chart & Table */
         .content-grid {
@@ -263,7 +281,9 @@ $recentLeads = $db->fetchAll("
             gap: 1rem;
         }
 
-        .activity-item:last-child { border-bottom: none; }
+        .activity-item:last-child {
+            border-bottom: none;
+        }
 
         .status-dot {
             width: 8px;
@@ -272,13 +292,23 @@ $recentLeads = $db->fetchAll("
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .animated { animation: slideUp 0.5s ease-out forwards; }
+        .animated {
+            animation: slideUp 0.5s ease-out forwards;
+        }
     </style>
 </head>
+
 <body>
     <div class="app-container">
         <?php include 'partials/sidebar.php'; ?>
@@ -292,7 +322,8 @@ $recentLeads = $db->fetchAll("
                         <h1>Hello, <?= explode(' ', Auth::userName())[0] ?>!</h1>
                         <p>Here's how your performance looks for <?= date('F Y') ?>.</p>
                     </div>
-                    <div style="background: white; padding: 0.5rem 1rem; border-radius: 12px; border: 1px solid #e2e8f0; font-weight: 600; font-size: 0.875rem; color: #475569;">
+                    <div
+                        style="background: white; padding: 0.5rem 1rem; border-radius: 12px; border: 1px solid #e2e8f0; font-weight: 600; font-size: 0.875rem; color: #475569;">
                         <i class="far fa-calendar-alt" style="margin-right: 0.5rem; color: var(--primary);"></i>
                         <?= date('M d, Y') ?>
                     </div>
@@ -304,12 +335,14 @@ $recentLeads = $db->fetchAll("
                         <div class="card-label">Target Achievement</div>
                         <div class="card-value"><?= $achievementPercent ?>%</div>
                         <div style="font-weight: 600; font-size: 0.9rem;">
-                            You've achieved ₹<?= number_format($totalBilled) ?> out of your ₹<?= number_format($targetAmount) ?> goal.
+                            You've achieved ₹<?= number_format($totalBilled) ?> out of your
+                            ₹<?= number_format($targetAmount) ?> goal.
                         </div>
                         <div class="progress-container">
                             <div class="progress-bar" style="width: <?= min(100, $achievementPercent) ?>%;"></div>
                         </div>
-                        <i class="fas fa-rocket" style="position: absolute; right: -20px; bottom: -20px; font-size: 8rem; opacity: 0.1; transform: rotate(-15deg);"></i>
+                        <i class="fas fa-rocket"
+                            style="position: absolute; right: -20px; bottom: -20px; font-size: 8rem; opacity: 0.1; transform: rotate(-15deg);"></i>
                     </div>
 
                     <div class="card stat-card">
@@ -393,20 +426,28 @@ $recentLeads = $db->fetchAll("
                         </h3>
                         <ul class="activity-list">
                             <?php foreach ($recentLeads as $l): ?>
-                            <li class="activity-item">
-                                <div class="status-dot" style="background: <?= $l['status'] == 'won' ? 'var(--success)' : ($l['status'] == 'lost' ? 'var(--danger)' : 'var(--warning)') ?>;"></div>
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 600; font-size: 0.9rem; color: #1e293b;"><?= htmlspecialchars($l['name']) ?></div>
-                                    <div style="font-size: 0.75rem; color: #64748b;"><?= htmlspecialchars($l['mobile']) ?></div>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div style="font-weight: 700; font-size: 0.85rem; color: #0f172a;">₹<?= number_format($l['deal_value'] ?? 0) ?></div>
-                                    <div style="font-size: 0.65rem; color: #94a3b8;"><?= date('d M', strtotime($l['created_at'])) ?></div>
-                                </div>
-                            </li>
+                                <li class="activity-item">
+                                    <div class="status-dot"
+                                        style="background: <?= $l['status'] == 'won' ? 'var(--success)' : ($l['status'] == 'lost' ? 'var(--danger)' : 'var(--warning)') ?>;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 600; font-size: 0.9rem; color: #1e293b;">
+                                            <?= htmlspecialchars($l['name']) ?></div>
+                                        <div style="font-size: 0.75rem; color: #64748b;">
+                                            <?= htmlspecialchars($l['mobile']) ?></div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-weight: 700; font-size: 0.85rem; color: #0f172a;">
+                                            ₹<?= number_format($l['deal_value'] ?? 0) ?></div>
+                                        <div style="font-size: 0.65rem; color: #94a3b8;">
+                                            <?= date('d M', strtotime($l['created_at'])) ?></div>
+                                    </div>
+                                </li>
                             <?php endforeach; ?>
                         </ul>
-                        <a href="<?= APP_URL ?>/public/index.php/leads" style="display: block; text-align: center; margin-top: 1.5rem; font-size: 0.8rem; font-weight: 700; color: var(--primary); text-decoration: none;">View All Leads <i class="fas fa-arrow-right" style="margin-left: 0.5rem;"></i></a>
+                        <a href="<?= APP_URL ?>/public/index.php/leads"
+                            style="display: block; text-align: center; margin-top: 1.5rem; font-size: 0.8rem; font-weight: 700; color: var(--primary); text-decoration: none;">View
+                            All Leads <i class="fas fa-arrow-right" style="margin-left: 0.5rem;"></i></a>
                     </div>
                 </div>
             </div>
@@ -443,9 +484,9 @@ $recentLeads = $db->fetchAll("
                         beginAtZero: true,
                         grid: { color: '#f1f5f9' },
                         ticks: {
-                            callback: function(value) {
-                                if (value >= 100000) return '₹' + (value/100000).toFixed(1) + 'L';
-                                if (value >= 1000) return '₹' + (value/1000).toFixed(0) + 'k';
+                            callback: function (value) {
+                                if (value >= 100000) return '₹' + (value / 100000).toFixed(1) + 'L';
+                                if (value >= 1000) return '₹' + (value / 1000).toFixed(0) + 'k';
                                 return '₹' + value;
                             }
                         }
@@ -456,4 +497,5 @@ $recentLeads = $db->fetchAll("
         });
     </script>
 </body>
+
 </html>

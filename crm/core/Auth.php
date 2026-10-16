@@ -108,41 +108,199 @@ class Auth {
     }
 
     public static function check() {
+        $isAuthenticated = false;
+
         if (isset($_SESSION['user'])) {
             self::$currentUser = $_SESSION['user'];
-            return true;
-        }
-
-        // Check for Bearer token in Authorization header for mobile app requests
-        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
-        if (empty($authHeader) && function_exists('apache_request_headers')) {
-            $headers = apache_request_headers();
-            $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-        }
-
-        if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
-            $token = $matches[1];
-        } elseif (!empty($_GET['auth_token'])) {
-            $token = $_GET['auth_token'];
-        }
-
-        if (isset($token)) {
-            $user = self::validateToken($token);
-            if ($user) {
-                self::$currentUser = $user;
-                // If it's a webview loading a page, we might want to set the session
-                if (!isset($_SESSION['user']) && strpos($_SERVER['REQUEST_URI'], '/api/') === false) {
-                    $_SESSION['user'] = $user;
-                }
-                return true;
+            $isAuthenticated = true;
+        } else {
+            // Check for Bearer token in Authorization header for mobile app requests
+            $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+            if (empty($authHeader) && function_exists('apache_request_headers')) {
+                $headers = apache_request_headers();
+                $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
             }
+
+            if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
+                $token = $matches[1];
+            } elseif (!empty($_GET['auth_token'])) {
+                $token = $_GET['auth_token'];
+            }
+
+            if (isset($token)) {
+                $user = self::validateToken($token);
+                if ($user) {
+                    self::$currentUser = $user;
+                    // If it's a webview loading a page, we might want to set the session
+                    if (!isset($_SESSION['user']) && strpos($_SERVER['REQUEST_URI'], '/api/') === false) {
+                        $_SESSION['user'] = $user;
+                    }
+                    $isAuthenticated = true;
+                }
+            }
+        }
+        
+        if ($isAuthenticated) {
+            self::enforceSubscriptionForMutation();
+            return true;
         }
 
         return false;
     }
+    
+    private static function enforceSubscriptionForMutation() {
+        if (self::isSuperAdmin()) return;
+        
+        // Only block mutating methods
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if ($method === 'GET' || $method === 'OPTIONS') return;
+        
+        // Only block if hitting an API endpoint
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        $script = $_SERVER['SCRIPT_NAME'] ?? '';
+        if (strpos($uri, '/api/') === false && strpos($script, '/api/') === false) {
+            return;
+        }
+        
+        // Whitelist payment endpoints so expired users can actually renew
+        if (strpos($uri, 'api/payment') !== false || strpos($script, 'api/payment') !== false) {
+            return;
+        }
+        
+        // Check expiry
+        if (self::isSubscriptionExpired()) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Your company subscription has expired. You have view-only access. Please renew to make changes.']);
+            exit;
+        }
+    }
+    
+    public static function isSubscriptionExpired() {
+        $company = self::company();
+        if (!$company) return false;
+        
+        if (isset($company['is_expired'])) {
+            return (bool)$company['is_expired'];
+        }
+
+        $today = date('Y-m-d');
+        $expiry = $company['expiry_date'] ?? $company['effective_expiry_date'] ?? null;
+        if (!empty($expiry)) {
+            return strtotime($expiry) < strtotime($today);
+        }
+
+        if (isset($company['plan']) && $company['plan'] === 'trial') {
+            if (!empty($company['trial_ends_at']) && $company['trial_ends_at'] < $today) {
+                return true;
+            }
+        } else {
+            if (!empty($company['subscription_ends_at']) && $company['subscription_ends_at'] < $today) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static function canIntegrateCustomWhatsApp($company = null) {
+        if (!$company) {
+            $company = self::company();
+        }
+        if (!$company) return false;
+        
+        if (self::isSuperAdmin()) return true;
+
+        $plan = strtolower(trim($company['plan'] ?? ($company['subscription_plan'] ?? '')));
+        if (strpos($plan, 'pro') !== false || strpos($plan, 'enterprise') !== false) {
+            return true;
+        }
+
+        try {
+            $db = Database::getInstance();
+            $row = $db->fetchOne("SELECT setting_value FROM website_settings WHERE setting_key = 'pricing_plans'");
+            if ($row && !empty($row['setting_value'])) {
+                $plans = json_decode($row['setting_value'], true) ?: [];
+                foreach ($plans as $p) {
+                    if (strtolower(trim($p['name'] ?? '')) === $plan) {
+                        if (!empty($p['allow_custom_whatsapp']) || !empty($p['is_pro'])) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        return false;
+    }
+
+    public static function hasCustomWhatsAppKeys($company = null) {
+        if (!$company) {
+            $company = self::company();
+        }
+        if (!$company) return false;
+        return !empty($company['whatsapp_access_token']) && !empty($company['whatsapp_number']);
+    }
+
+    public static function getWhatsAppQuota($company = null) {
+        if (!$company) {
+            $company = self::company();
+        }
+        if (!$company) {
+            return ['limit' => 0, 'sent' => 0, 'remaining' => 0, 'unlimited' => false, 'has_custom_keys' => false, 'is_pro' => false];
+        }
+
+        $isPro = self::canIntegrateCustomWhatsApp($company);
+        $hasCustomKeys = self::hasCustomWhatsAppKeys($company);
+
+        // If on Pro plan AND has configured custom keys -> UNLIMITED messages
+        if ($isPro && $hasCustomKeys) {
+            return [
+                'limit' => -1,
+                'sent' => intval($company['whatsapp_messages_sent'] ?? 0),
+                'remaining' => -1,
+                'unlimited' => true,
+                'has_custom_keys' => true,
+                'is_pro' => true
+            ];
+        }
+
+        // Determine message limit
+        $limit = isset($company['whatsapp_limit']) && is_numeric($company['whatsapp_limit']) ? intval($company['whatsapp_limit']) : 0;
+        
+        if ($limit <= 0 && $limit !== -1) {
+            $plan = strtolower(trim($company['plan'] ?? ($company['subscription_plan'] ?? '')));
+            try {
+                $db = Database::getInstance();
+                $row = $db->fetchOne("SELECT setting_value FROM website_settings WHERE setting_key = 'pricing_plans'");
+                if ($row && !empty($row['setting_value'])) {
+                    $plans = json_decode($row['setting_value'], true) ?: [];
+                    foreach ($plans as $p) {
+                        if (strtolower(trim($p['name'] ?? '')) === $plan) {
+                            if (isset($p['whatsapp_limit']) && is_numeric($p['whatsapp_limit'])) {
+                                $limit = intval($p['whatsapp_limit']);
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {}
+            if ($limit <= 0) $limit = 50; // default platform limit
+        }
+
+        $sent = intval($company['whatsapp_messages_sent'] ?? 0);
+        $remaining = max(0, $limit - $sent);
+
+        return [
+            'limit' => $limit,
+            'sent' => $sent,
+            'remaining' => $remaining,
+            'unlimited' => false,
+            'has_custom_keys' => $hasCustomKeys,
+            'is_pro' => $isPro
+        ];
+    }
 
     public static function generateToken($user, bool $impersonating = false) {
-        $secret = defined('JWT_SECRET') ? JWT_SECRET : 'aikaa_crm_secret_key_2026';
+        $secret = defined('JWT_SECRET') ? JWT_SECRET : 'aikaaa_crm_secret_key_2026';
         $payload = [
             'uid' => $user['id'],
             'cid' => $user['company_id'],
@@ -161,7 +319,7 @@ class Auth {
         $parts = explode('.', $token);
         if (count($parts) !== 2) return null;
         list($data, $sig) = $parts;
-        $secret = defined('JWT_SECRET') ? JWT_SECRET : 'aikaa_crm_secret_key_2026';
+        $secret = defined('JWT_SECRET') ? JWT_SECRET : 'aikaaa_crm_secret_key_2026';
         $expectedSig = hash_hmac('sha256', $data, $secret);
         if (!hash_equals($expectedSig, $sig)) return null;
 
@@ -203,8 +361,13 @@ class Auth {
         $id = self::companyId();
         if (!$id) return null;
 
-        $db = Database::getInstance();
-        self::$currentCompany = $db->fetchOne("SELECT * FROM companies WHERE id = ?", [$id]);
+        require_once __DIR__ . '/Company.php';
+        $companyModel = new Company();
+        self::$currentCompany = $companyModel->find($id);
+        if (!self::$currentCompany) {
+            $db = Database::getInstance();
+            self::$currentCompany = $db->fetchOne("SELECT * FROM companies WHERE id = ?", [$id]);
+        }
         return self::$currentCompany;
     }
 

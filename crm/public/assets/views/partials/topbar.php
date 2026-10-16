@@ -355,5 +355,24 @@ $dp = (!empty($user['photo']))
 
             updateAttendanceStatus();
         <?php endif; ?>
+
+        // Global alert wrapper for subscription expiration
+        const originalAlert = window.alert;
+        window.alert = function(msg) {
+            if (typeof msg === 'string' && msg.includes('Your company subscription has expired')) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Subscription Expired',
+                        text: msg,
+                        confirmButtonColor: '#ef4444'
+                    });
+                } else {
+                    originalAlert(msg);
+                }
+            } else {
+                originalAlert(msg);
+            }
+        };
     });
 </script>

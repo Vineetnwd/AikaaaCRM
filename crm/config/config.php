@@ -8,7 +8,7 @@ if ($is_local) {
     define('DB_HOST', 'localhost');
     define('DB_USER', 'root');
     define('DB_PASS', '');
-    define('DB_NAME', 'aikaa_crm');
+    define('DB_NAME', 'aikaaa_crm');
 
     // Dynamic local URL includes port if present
     define('APP_URL', 'http://' . $_SERVER['HTTP_HOST'] . '/aikocrm');
@@ -22,7 +22,7 @@ if ($is_local) {
 }
 
 // App Config
-define('APP_NAME', 'Aikaa CRM');
+define('APP_NAME', 'Aikaaa CRM');
 date_default_timezone_set('Asia/Kolkata');
 // Security
 define('JWT_SECRET', 'your-very-secure-secret-key-123456');

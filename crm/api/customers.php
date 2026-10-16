@@ -109,6 +109,7 @@ if ($method === 'GET') {
             $total_pages = max(1, ceil($total / $limit));
 
             $sql = "SELECT c.*, 
+                (SELECT GROUP_CONCAT(DISTINCT r.name SEPARATOR ', ') FROM lead_requirements lr JOIN requirements r ON lr.requirement_id = r.id JOIN leads l ON lr.lead_id = l.id WHERE (l.customer_id = c.id OR (l.mobile != '' AND l.mobile COLLATE utf8mb4_unicode_ci = c.mobile COLLATE utf8mb4_unicode_ci)) AND l.company_id = :comp_serv) as service_name,
                 (SELECT MAX(l.created_at) FROM leads l WHERE (l.customer_id = c.id OR (l.mobile != '' AND l.mobile COLLATE utf8mb4_unicode_ci = c.mobile COLLATE utf8mb4_unicode_ci)) AND l.company_id = :comp1) as last_lead_at,
                 (SELECT COUNT(*) FROM leads l WHERE (l.customer_id = c.id OR (l.mobile != '' AND l.mobile COLLATE utf8mb4_unicode_ci = c.mobile COLLATE utf8mb4_unicode_ci)) AND l.company_id = :comp2) as lead_count,
                 (SELECT COUNT(DISTINCT lr.requirement_id) FROM lead_requirements lr JOIN leads l ON lr.lead_id = l.id WHERE (l.customer_id = c.id OR (l.mobile != '' AND l.mobile COLLATE utf8mb4_unicode_ci = c.mobile COLLATE utf8mb4_unicode_ci)) AND l.company_id = :comp3) as service_count,
@@ -116,6 +117,7 @@ if ($method === 'GET') {
                 " . $baseSql . "
                 ORDER BY last_lead_at DESC LIMIT $limit OFFSET $offset";
             
+            $params['comp_serv'] = $company_id;
             $params['comp1'] = $company_id;
             $params['comp2'] = $company_id;
             $params['comp3'] = $company_id;

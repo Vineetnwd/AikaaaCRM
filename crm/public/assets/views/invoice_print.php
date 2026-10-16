@@ -369,7 +369,7 @@ function amountToWords($number) {
                         <img src="<?= APP_URL ?>/public/<?= htmlspecialchars($company['logo_path']) ?>" alt="Logo" style="max-height: 60px; max-width: 180px; object-fit: contain; display: block; margin-bottom: 10px;">
                     <?php else: ?>
                         <div style="font-size: 24px; font-weight: 900; color: var(--primary, #6366f1); border-left: 4px solid var(--primary, #6366f1); padding-left: 10px; margin-bottom: 10px;">
-                            <?= htmlspecialchars($company['name'] ?? 'AIKAA CRM') ?>
+                            <?= htmlspecialchars($company['name'] ?? 'AIKAAA CRM') ?>
                         </div>
                     <?php endif; ?>
                 </td>

@@ -50,7 +50,7 @@ export default function AttendanceScreen() {
     try {
       const res = await api.markAttendance({
         status: type === 'check_in' ? 'present' : 'completed',
-        notes: `Marked via Aikaa CRM Mobile App at ${new Date().toLocaleTimeString()}`,
+        notes: `Marked via Aikaaa CRM Mobile App at ${new Date().toLocaleTimeString()}`,
       });
 
       if (res.success) {

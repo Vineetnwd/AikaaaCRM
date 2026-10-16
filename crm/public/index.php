@@ -54,28 +54,9 @@ if ($path !== 'login' && $path !== 'register' && $path !== 'forgot_password' && 
 if (Auth::check() && !Auth::isSuperAdmin()) {
     $company = Auth::company();
     if ($company) {
-        $today = date('Y-m-d');
-        $expired = false;
-        
-        if ($company['plan'] === 'trial') {
-            if (!empty($company['trial_ends_at']) && $company['trial_ends_at'] < $today) {
-                $expired = true;
-            }
-        } else {
-            if (!empty($company['subscription_ends_at']) && $company['subscription_ends_at'] < $today) {
-                $expired = true;
-            }
-        }
-        
-        if ($expired) {
-            Auth::logout();
-            if (strpos($path, 'api/') === 0) {
-                http_response_code(403);
-                echo json_encode(['error' => 'Your company subscription has expired. Please contact your service provider to renew your services.']);
-            } else {
-                header('Location: ' . APP_URL . '/public/index.php/login?expired=1');
-            }
-            exit;
+        $expired = Auth::isSubscriptionExpired();
+        if (!defined('SUBSCRIPTION_EXPIRED')) {
+            define('SUBSCRIPTION_EXPIRED', $expired);
         }
     }
 }
@@ -176,11 +157,8 @@ switch ($path) {
                                 $expired = true;
                             }
                         }
-                        if ($expired) {
-                            Auth::logout();
-                            $subscriptionExpired = true;
-                            include __DIR__ . '/../public/assets/views/login.php';
-                            exit;
+                        if ($expired && !defined('SUBSCRIPTION_EXPIRED')) {
+                            define('SUBSCRIPTION_EXPIRED', true);
                         }
                     }
                 }
@@ -209,6 +187,18 @@ switch ($path) {
         Auth::logout();
         header('Location: ' . APP_URL . '/public/index.php/login');
         break;
+    case 'renew':
+        include __DIR__ . '/../public/assets/views/renew.php';
+        break;
+    case 'subscription_receipt':
+        include __DIR__ . '/../public/assets/views/subscription_receipt.php';
+        break;
+    case 'api/payment/create_order.php':
+        include __DIR__ . '/../api/payment/create_order.php';
+        exit;
+    case 'api/payment/verify.php':
+        include __DIR__ . '/../api/payment/verify.php';
+        exit;
     case '':
     case 'dashboard':
     case 'executive_dashboard':
@@ -297,6 +287,9 @@ switch ($path) {
         break;
     case 'report_sheet':
         include __DIR__ . '/../public/assets/views/report_sheet.php';
+        break;
+    case 'target_slides':
+        include __DIR__ . '/../public/assets/views/target_slides.php';
         break;
     case 'task_performance_report':
         include __DIR__ . '/../public/assets/views/task_performance_report.php';

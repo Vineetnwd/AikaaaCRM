@@ -37,7 +37,7 @@ if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
     if (count($parts) === 2) {
         $data = $parts[0];
         $sig  = $parts[1];
-        $secret = defined('JWT_SECRET') ? JWT_SECRET : 'aikaa_crm_secret_key_2026';
+        $secret = defined('JWT_SECRET') ? JWT_SECRET : 'aikaaa_crm_secret_key_2026';
         $expectedSig = hash_hmac('sha256', $data, $secret);
         $result['signature_valid'] = hash_equals($expectedSig, $sig);
 

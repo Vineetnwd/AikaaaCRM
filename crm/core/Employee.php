@@ -75,6 +75,10 @@ class Employee
                 $conn->exec("ALTER TABLE employees ADD COLUMN ifsc_code VARCHAR(50) DEFAULT NULL");
                 $conn->exec("ALTER TABLE employees ADD COLUMN upi_id VARCHAR(100) DEFAULT NULL");
             }
+            
+            if (!in_array('show_in_target_slide', $columns)) {
+                $conn->exec("ALTER TABLE employees ADD COLUMN show_in_target_slide TINYINT(1) DEFAULT 0");
+            }
         } catch (\Throwable $e) {
             // Silence error
         }
@@ -113,7 +117,22 @@ class Employee
                     (SELECT GROUP_CONCAT(title SEPARATOR ';;') FROM tasks t WHERE t.assigned_to = e.id AND DATE(t.created_at) = ?) AS today_task_details,
                     (SELECT GROUP_CONCAT(CONCAT(IFNULL(name, ''), '||', IFNULL(mobile, ''), '||', IFNULL((SELECT GROUP_CONCAT(r.name SEPARATOR ', ') FROM requirements r JOIN lead_requirements lr ON r.id = lr.requirement_id WHERE lr.lead_id = l.id), '')) SEPARATOR ';;') FROM leads l WHERE l.assigned_employee_id = e.id AND l.follow_up_date = ?) AS today_lead_target_details,
                     (SELECT GROUP_CONCAT(title SEPARATOR ';;') FROM tasks t WHERE t.assigned_to = e.id AND DATE(t.created_at) = ?) AS today_task_assigned_details,
-                    (SELECT GROUP_CONCAT(title SEPARATOR ';;') FROM tasks t WHERE t.assigned_to = e.id AND t.due_date = ?) AS today_task_delivery_details ";
+                    (SELECT GROUP_CONCAT(title SEPARATOR ';;') FROM tasks t WHERE t.assigned_to = e.id AND t.due_date = ?) AS today_task_delivery_details,
+                    COALESCE((
+                        SELECT SUM(i.total_amount)
+                        FROM invoices i JOIN leads l ON i.lead_id = l.id
+                        WHERE i.company_id = e.company_id AND i.payment_status != 'cancelled'
+                          AND DATE(i.invoice_date) BETWEEN DATE_FORMAT(NOW(),'%Y-%m-01') AND LAST_DAY(NOW())
+                          AND (l.assigned_employee_id = e.id OR l.assigned_to = (SELECT id FROM users WHERE (employee_id = e.id OR emp_id = e.id) AND company_id = e.company_id LIMIT 1))
+                    ), 0) AS monthly_billing,
+                    COALESCE((
+                        SELECT SUM(p.amount)
+                        FROM invoice_payments p JOIN invoices i ON p.invoice_id = i.id JOIN leads l ON i.lead_id = l.id
+                        WHERE p.company_id = e.company_id AND i.payment_status != 'cancelled'
+                          AND DATE(p.payment_date) BETWEEN DATE_FORMAT(NOW(),'%Y-%m-01') AND LAST_DAY(NOW())
+                          AND (l.assigned_employee_id = e.id OR l.assigned_to = (SELECT id FROM users WHERE (employee_id = e.id OR emp_id = e.id) AND company_id = e.company_id LIMIT 1))
+                    ), 0) AS monthly_collection ";
+
 
         $selectParams = [$today, $today, $today, $today, $today, $today, $today, $today, $today];
         $mergedParams = array_merge($selectParams, $params);
@@ -178,7 +197,7 @@ class Employee
             $conn->beginTransaction();
 
             $empId = $this->db->insert('employees', $data);
-            $userEmail = !empty($data['email']) ? $data['email'] : 'emp_' . $empId . '@aikaacrm.com';
+            $userEmail = !empty($data['email']) ? $data['email'] : 'emp_' . $empId . '@aikaaacrm.com';
             $userData = [
                 'company_id' => $this->company_id,
                 'name' => $data['name'],

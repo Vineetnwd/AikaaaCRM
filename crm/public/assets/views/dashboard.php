@@ -5,6 +5,75 @@ use Core\Auth;
 $db = Database::getInstance();
 $company_id = Auth::companyId();
 
+/* ================= SUBSCRIPTION DETAILS ================= */
+$company = Auth::company();
+$planName = 'N/A';
+$formattedExpiryDate = 'N/A';
+$daysRemaining = null;
+$daysRemainingText = '';
+$isSubExpired = false;
+$badgeClass = 'sub-badge-success';
+$badgeText = 'Active';
+
+if ($company) {
+    $planName = !empty($company['plan']) ? ucfirst($company['plan']) : 'Trial';
+    if (strtolower($planName) === 'trial') {
+        $planName = 'Trial Plan';
+    } elseif (stripos($planName, 'plan') === false) {
+        $planName = $planName . ' Plan';
+    }
+
+    $rawExpiry = $company['expiry_date'] ?? $company['effective_expiry_date'] ?? null;
+    $isSubExpired = isset($company['is_expired']) ? (bool)$company['is_expired'] : false;
+    $daysRemaining = isset($company['days_left']) ? (int)$company['days_left'] : null;
+
+    if ($rawExpiry === null) {
+        if (strtolower($company['plan'] ?? '') === 'trial') {
+            $rawExpiry = !empty($company['trial_ends_at']) ? $company['trial_ends_at'] : date('Y-m-d', strtotime('+7 days', strtotime($company['created_at'] ?? 'now')));
+        } elseif (!empty($company['subscription_ends_at'])) {
+            $rawExpiry = $company['subscription_ends_at'];
+        } elseif (strtolower($company['plan'] ?? '') === 'pro') {
+            $rawExpiry = date('Y-m-d', strtotime('+1 year', strtotime($company['subscription_starts_at'] ?? ($company['created_at'] ?? 'now'))));
+        } elseif (strtolower($company['plan'] ?? '') === 'basic') {
+            $rawExpiry = date('Y-m-d', strtotime('+1 month', strtotime($company['subscription_starts_at'] ?? ($company['created_at'] ?? 'now'))));
+        } else {
+            $rawExpiry = $company['subscription_ends_at'] ?? null;
+        }
+    }
+
+    if ($rawExpiry) {
+        $daysRemaining = (int)floor((strtotime(date('Y-m-d', strtotime($rawExpiry))) - strtotime(date('Y-m-d'))) / 86400);
+        $isSubExpired = ($daysRemaining < 0);
+    }
+
+    if (!empty($rawExpiry)) {
+        $formattedExpiryDate = date('d M, Y', strtotime($rawExpiry));
+        if ($isSubExpired) {
+            $daysAgo = abs($daysRemaining ?? 0);
+            $daysRemainingText = $daysAgo . ' day' . ($daysAgo === 1 ? '' : 's') . ' ago';
+            $badgeClass = 'sub-badge-danger';
+            $badgeText = 'Expired';
+        } elseif ($daysRemaining === 0) {
+            $daysRemainingText = 'Expires Today';
+            $badgeClass = 'sub-badge-warning';
+            $badgeText = 'Expires Today';
+        } elseif ($daysRemaining <= 7) {
+            $daysRemainingText = $daysRemaining . ' day' . ($daysRemaining === 1 ? '' : 's') . ' left';
+            $badgeClass = 'sub-badge-warning';
+            $badgeText = 'Expiring Soon';
+        } else {
+            $daysRemainingText = $daysRemaining . ' days left';
+            $badgeClass = 'sub-badge-success';
+            $badgeText = 'Active';
+        }
+    } else {
+        $formattedExpiryDate = 'Lifetime / Unlimited';
+        $daysRemainingText = 'Unlimited';
+        $badgeClass = 'sub-badge-success';
+        $badgeText = 'Active';
+    }
+}
+
 /* ================= DATE RANGE ================= */
 $range = $_GET['range'] ?? 'month';
 
@@ -130,7 +199,7 @@ $recentLeads = $db->fetchAll(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Aikaa CRM</title>
+    <title>Dashboard | Aikaaa CRM</title>
     <link rel="stylesheet" href="<?= APP_URL ?>/public/assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <style>
@@ -294,6 +363,110 @@ $recentLeads = $db->fetchAll(
         .badge-won { background: #d1fae5; color: #059669; }
         .badge-lost { background: #fee2e2; color: #dc2626; }
         .badge-default { background: #f1f5f9; color: #64748b; }
+
+        /* Subscription status card */
+        .sub-status-card {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: 1.1rem 1.4rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+        }
+        .sub-status-items {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.75rem;
+        }
+        .sub-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .sub-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
+            flex-shrink: 0;
+        }
+        .sub-icon.plan { background: #eef2ff; color: #6366f1; }
+        .sub-icon.expiry { background: #ecfdf5; color: #10b981; }
+        .sub-icon.remaining.success { background: #ecfdf5; color: #10b981; }
+        .sub-icon.remaining.warning { background: #fffbeb; color: #d97706; }
+        .sub-icon.remaining.danger { background: #fef2f2; color: #ef4444; }
+        
+        .sub-meta { display: flex; flex-direction: column; }
+        .sub-label {
+            font-size: 0.625rem;
+            font-weight: 800;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: 2px;
+        }
+        .sub-val {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .sub-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.6rem;
+            font-weight: 800;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        .sub-badge-success { background: #d1fae5; color: #059669; }
+        .sub-badge-warning { background: #fef3c7; color: #d97706; }
+        .sub-badge-danger { background: #fee2e2; color: #dc2626; }
+        
+        .sub-btn-renew {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, var(--primary, #6366f1) 0%, #4f46e5 100%);
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+            white-space: nowrap;
+        }
+        .sub-btn-renew:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+            color: #fff;
+        }
+        .sub-divider {
+            width: 1px;
+            height: 34px;
+            background: var(--border, #e2e8f0);
+        }
+        @media (max-width: 768px) {
+            .sub-divider { display: none; }
+            .sub-status-card { flex-direction: column; align-items: stretch; }
+            .sub-status-items { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .sub-btn-renew { justify-content: center; width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -303,11 +476,30 @@ $recentLeads = $db->fetchAll(
         <main class="main-content">
             <?php include 'partials/topbar.php'; ?>
 
+            <?php if (!Auth::isSuperAdmin() && defined('SUBSCRIPTION_EXPIRED') && SUBSCRIPTION_EXPIRED): ?>
+                <div style="background-color: #fee2e2; border-left: 4px solid #ef4444; color: #991b1b; padding: 1rem 1.5rem; margin-bottom: 1.5rem; border-radius: 0 8px 8px 0; display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <strong style="display: block; font-size: 1.1rem; margin-bottom: 0.25rem;"><i class="fas fa-exclamation-triangle"></i> Action Required: Subscription Expired</strong>
+                        <span style="font-size: 0.95rem;">Your account is in view-only mode. Please renew your subscription to restore full functionality.</span>
+                    </div>
+                    <a href="<?= APP_URL ?>/public/index.php/renew" style="background-color: #ef4444; color: white; padding: 0.5rem 1.25rem; border-radius: 6px; text-decoration: none; font-weight: 600; white-space: nowrap;">
+                        Renew Now
+                    </a>
+                </div>
+            <?php endif; ?>
+
             <div class="content" style="padding:0;">
                 <div class="hero">
                     <div>
                         <h1>Analytics Command Center</h1>
-                        <p>Intelligent performance insights for <?= htmlspecialchars(Auth::user()['name']) ?></p>
+                        <p style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                            <span>Intelligent performance insights for <?= htmlspecialchars(Auth::user()['name']) ?></span>
+                            <?php if ($company): ?>
+                                <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); padding: 2px 10px; border-radius: 20px; font-weight: 600; font-size: 0.72rem; color: #fff;">
+                                    <i class="fas fa-crown" style="color: #fbbf24; font-size: 0.7rem;"></i> <?= htmlspecialchars($planName) ?> &bull; <?= htmlspecialchars($daysRemainingText) ?>
+                                </span>
+                            <?php endif; ?>
+                        </p>
                     </div>
                     <form action="" method="GET">
                         <select name="range" class="range-select" onchange="this.form.submit()">
@@ -318,6 +510,61 @@ $recentLeads = $db->fetchAll(
                         </select>
                     </form>
                 </div>
+
+                <?php if ($company): ?>
+                <div class="sub-status-card">
+                    <div class="sub-status-items">
+                        <div class="sub-item">
+                            <div class="sub-icon plan">
+                                <i class="fas fa-crown"></i>
+                            </div>
+                            <div class="sub-meta">
+                                <span class="sub-label">Subscription Plan</span>
+                                <div class="sub-val">
+                                    <span><?= htmlspecialchars($planName) ?></span>
+                                    <span class="sub-badge <?= $badgeClass ?>"><?= $badgeText ?></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sub-divider"></div>
+
+                        <div class="sub-item">
+                            <div class="sub-icon expiry">
+                                <i class="far fa-calendar-alt"></i>
+                            </div>
+                            <div class="sub-meta">
+                                <span class="sub-label">Expiry Date</span>
+                                <div class="sub-val">
+                                    <?= htmlspecialchars($formattedExpiryDate) ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sub-divider"></div>
+
+                        <div class="sub-item">
+                            <div class="sub-icon remaining <?= $isSubExpired ? 'danger' : ($daysRemaining !== null && $daysRemaining <= 7 ? 'warning' : 'success') ?>">
+                                <i class="far fa-clock"></i>
+                            </div>
+                            <div class="sub-meta">
+                                <span class="sub-label"><?= $isSubExpired ? 'Expired Since' : 'Remaining Days' ?></span>
+                                <div class="sub-val" style="color: <?= $isSubExpired ? '#ef4444' : ($daysRemaining !== null && $daysRemaining <= 7 ? '#d97706' : '#059669') ?>;">
+                                    <?= htmlspecialchars($daysRemainingText) ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <?php if (!Auth::isSuperAdmin()): ?>
+                    <div>
+                        <a href="<?= APP_URL ?>/public/index.php/renew" class="sub-btn-renew">
+                            <i class="fas fa-bolt"></i> <?= $isSubExpired ? 'Renew Subscription' : 'Upgrade / Renew' ?>
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
 
                 <div class="tabs">
                     <button class="tab active" onclick="switchTab('sales', this)"><span style="font-size: 14px;">&#9670;</span> Sales Overview</button>
