@@ -9,9 +9,8 @@ require_once __DIR__ . '/../core/Database.php';
 use Core\Auth;
 use Core\Database;
 
-header('Content-Type: application/json');
-
 if (!Auth::check()) {
+    header('Content-Type: application/json');
     http_response_code(401);
     echo json_encode(['error' => 'Unauthorized']);
     exit;
@@ -22,6 +21,165 @@ $company_id = Auth::companyId();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
+    // Check for Excel / CSV export
+    if (isset($_GET['action']) && in_array($_GET['action'], ['export', 'export_xlsx'])) {
+        require_once __DIR__ . '/../core/SimpleXLSXWriter.php';
+
+        $scope = $_GET['scope'] ?? 'all';
+        $format = $_GET['format'] ?? 'xlsx';
+        $search = trim($_GET['search'] ?? '');
+        $idsParam = trim($_GET['ids'] ?? '');
+
+        $searchCond = '';
+        $idCond = '';
+        $dateCond = '';
+        $params = [];
+
+        // Base company
+        $params['comp_base'] = $company_id;
+
+        // Specific IDs (Selected rows)
+        if (!empty($idsParam)) {
+            $ids = array_filter(array_map('intval', explode(',', $idsParam)));
+            if (!empty($ids)) {
+                $idPlaceholders = [];
+                foreach ($ids as $idx => $idVal) {
+                    $pName = 'exp_id_' . $idx;
+                    $idPlaceholders[] = ':' . $pName;
+                    $params[$pName] = $idVal;
+                }
+                $idCond = " AND c.id IN (" . implode(',', $idPlaceholders) . ")";
+            }
+        } elseif ($scope === 'month' && !empty($_GET['month']) && !empty($_GET['year'])) {
+            $m = str_pad((int)$_GET['month'], 2, '0', STR_PAD_LEFT);
+            $y = (int)$_GET['year'];
+            $start = "$y-$m-01 00:00:00";
+            $end = date('Y-m-t 23:59:59', strtotime("$y-$m-01"));
+            $dateCond = " AND c.created_at BETWEEN :start_date AND :end_date";
+            $params['start_date'] = $start;
+            $params['end_date'] = $end;
+        } elseif ($scope === 'custom' && !empty($_GET['start']) && !empty($_GET['end'])) {
+            $dateCond = " AND c.created_at BETWEEN :start_date AND :end_date";
+            $params['start_date'] = $_GET['start'] . ' 00:00:00';
+            $params['end_date'] = $_GET['end'] . ' 23:59:59';
+        }
+
+        // Search filter
+        if (!empty($search)) {
+            $searchCond = " AND (c.name LIKE :search1 OR c.mobile LIKE :search2 OR c.email LIKE :search3)";
+            $params['search1'] = "%$search%";
+            $params['search2'] = "%$search%";
+            $params['search3'] = "%$search%";
+        }
+
+        // Executive filter
+        if (Auth::isExecutive()) {
+            $userId = Auth::userId();
+            $empId = Auth::employeeId();
+            $baseSql = "FROM customers c
+                WHERE c.company_id = :comp_base
+                $searchCond
+                $idCond
+                $dateCond
+                AND EXISTS (
+                    SELECT 1 FROM leads l 
+                    WHERE (l.customer_id = c.id OR (l.mobile != '' AND l.mobile COLLATE utf8mb4_unicode_ci = c.mobile COLLATE utf8mb4_unicode_ci)) 
+                    AND l.company_id = :comp_leads
+                    AND (l.assigned_to = :uid OR l.assigned_employee_id = :eid)
+                )";
+            $params['comp_leads'] = $company_id;
+            $params['uid'] = $userId;
+            $params['eid'] = $empId;
+        } else {
+            $baseSql = "FROM customers c
+                WHERE c.company_id = :comp_base
+                $searchCond
+                $idCond
+                $dateCond";
+        }
+
+        $sql = "SELECT c.*, 
+            (SELECT GROUP_CONCAT(DISTINCT r.name SEPARATOR ', ') FROM lead_requirements lr JOIN requirements r ON lr.requirement_id = r.id JOIN leads l ON lr.lead_id = l.id WHERE (l.customer_id = c.id OR (l.mobile != '' AND l.mobile COLLATE utf8mb4_unicode_ci = c.mobile COLLATE utf8mb4_unicode_ci)) AND l.company_id = :comp_serv) as service_name,
+            (SELECT MAX(l.created_at) FROM leads l WHERE (l.customer_id = c.id OR (l.mobile != '' AND l.mobile COLLATE utf8mb4_unicode_ci = c.mobile COLLATE utf8mb4_unicode_ci)) AND l.company_id = :comp1) as last_lead_at,
+            (SELECT COUNT(*) FROM leads l WHERE (l.customer_id = c.id OR (l.mobile != '' AND l.mobile COLLATE utf8mb4_unicode_ci = c.mobile COLLATE utf8mb4_unicode_ci)) AND l.company_id = :comp2) as lead_count,
+            (SELECT COALESCE(SUM(i.total_amount), 0) FROM invoices i JOIN leads l ON i.lead_id = l.id WHERE (l.customer_id = c.id OR (l.mobile != '' AND l.mobile COLLATE utf8mb4_unicode_ci = c.mobile COLLATE utf8mb4_unicode_ci)) AND l.company_id = :comp4 AND i.company_id = :comp5) as total_spent,
+            (SELECT COALESCE(SUM(i.paid_amount), 0) FROM invoices i JOIN leads l ON i.lead_id = l.id WHERE (l.customer_id = c.id OR (l.mobile != '' AND l.mobile COLLATE utf8mb4_unicode_ci = c.mobile COLLATE utf8mb4_unicode_ci)) AND l.company_id = :comp6 AND i.company_id = :comp7) as total_paid,
+            (SELECT COALESCE(SUM(i.due_amount), 0) FROM invoices i JOIN leads l ON i.lead_id = l.id WHERE (l.customer_id = c.id OR (l.mobile != '' AND l.mobile COLLATE utf8mb4_unicode_ci = c.mobile COLLATE utf8mb4_unicode_ci)) AND l.company_id = :comp8 AND i.company_id = :comp9) as total_due
+            " . $baseSql . "
+            ORDER BY last_lead_at DESC, c.id DESC";
+
+        $params['comp_serv'] = $company_id;
+        $params['comp1'] = $company_id;
+        $params['comp2'] = $company_id;
+        $params['comp4'] = $company_id;
+        $params['comp5'] = $company_id;
+        $params['comp6'] = $company_id;
+        $params['comp7'] = $company_id;
+        $params['comp8'] = $company_id;
+        $params['comp9'] = $company_id;
+
+        $customers = $db->fetchAll($sql, $params);
+
+        $headers = [
+            'S.No',
+            'Customer Name',
+            'Mobile',
+            'Email',
+            'Address',
+            'Total Leads',
+            'Services',
+            'Total Billed (INR)',
+            'Total Paid (INR)',
+            'Total Due (INR)',
+            'Last Activity',
+            'Registered Date'
+        ];
+
+        $rows = [];
+        $sno = 1;
+        foreach ($customers as $c) {
+            $rows[] = [
+                $sno++,
+                trim($c['name'] ?? '') ?: 'Unnamed',
+                trim($c['mobile'] ?? '') ?: 'N/A',
+                trim($c['email'] ?? '') ?: '',
+                trim($c['address'] ?? '') ?: '',
+                intval($c['lead_count'] ?? 0),
+                $c['service_name'] ?? '',
+                floatval($c['total_spent'] ?? 0),
+                floatval($c['total_paid'] ?? 0),
+                floatval($c['total_due'] ?? 0),
+                $c['last_lead_at'] ? date('d-m-Y H:i', strtotime($c['last_lead_at'])) : '—',
+                $c['created_at'] ? date('d-m-Y H:i', strtotime($c['created_at'])) : '—'
+            ];
+        }
+
+        if ($format === 'csv') {
+            header_remove('Content-Type');
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="Customers_Export_' . date('Y-m-d') . '.csv"');
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($out, $headers);
+            foreach ($rows as $r) {
+                fputcsv($out, $r);
+            }
+            fclose($out);
+            exit;
+        }
+
+        $xlsxContent = \Core\SimpleXLSXWriter::create($headers, $rows, 'Customers');
+        header_remove('Content-Type');
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="Customers_Export_' . date('Y-m-d') . '.xlsx"');
+        header('Content-Length: ' . strlen($xlsxContent));
+        header('Cache-Control: max-age=0');
+        header('Pragma: public');
+        echo $xlsxContent;
+        exit;
+    }
+
+    header('Content-Type: application/json');
     try {
         if (isset($_GET['id'])) {
             $id = (int) $_GET['id'];

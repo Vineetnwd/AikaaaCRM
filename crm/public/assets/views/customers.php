@@ -224,16 +224,19 @@ if ($isExecutive) {
         <main class="main-content">
             <?php include 'partials/topbar.php'; ?>
             <header class="header" style="margin-bottom: 2rem;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
                     <div>
                         <h1 class="page-title" style="margin-bottom: 0.25rem;">Customer Registry</h1>
                         <p style="color: #64748b; font-size: 0.875rem;">View your unique clients and their complete engagement history</p>
                     </div>
-                    <div>
-                        <div class="search-bar" style="position: relative; width: 300px;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div class="search-bar" style="position: relative; width: 280px;">
                             <i class="fas fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.875rem;"></i>
                             <input type="text" id="customerSearch" placeholder="Search by name or mobile..." style="width: 100%; padding: 0.625rem 1rem 0.625rem 2.5rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; font-size: 0.875rem; outline: none; transition: border-color 0.2s;">
                         </div>
+                        <button onclick="openExportModal()" class="btn btn-ghost" style="height: 38px; border: 1px solid #e2e8f0; background: white; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; padding: 0 1rem; cursor: pointer; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s;" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor='#e2e8f0'">
+                            <i class="fas fa-file-excel" style="color: #10b981; font-size: 0.95rem;"></i> Export Excel
+                        </button>
                     </div>
                 </div>
             </header>
@@ -304,32 +307,33 @@ if ($isExecutive) {
 
             <div id="paginationControls" style="margin-top: 1.25rem; display: none; justify-content: space-between; align-items: center; background: white; padding: 1rem; border-radius: 1rem; border: 1px solid var(--border);"></div>
             <!-- Bulk Action Bar -->
-            <?php if (!$isExecutive): ?>
-                <div id="bulkActionBar"
-                    style="display: none; position: fixed; top: 5.5rem; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 0.75rem 1.75rem; border-radius: 0.75rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); z-index: 1000; align-items: center; gap: 1.25rem; border: 1px solid rgba(255,255,255,0.1); animation: slideDown 0.3s ease;">
+            <div id="bulkActionBar"
+                style="display: none; position: fixed; top: 5.5rem; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 0.75rem 1.75rem; border-radius: 0.75rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); z-index: 1000; align-items: center; gap: 1.25rem; border: 1px solid rgba(255,255,255,0.1); animation: slideDown 0.3s ease;">
 
-                    <div style="display: flex; align-items: center; gap: 0.6rem;">
-                        <span id="selectedCount"
-                            style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">0</span>
-                        <span style="font-size: 0.8125rem; font-weight: 700;">Selected</span>
-                    </div>
-
-                    <div style="height: 20px; width: 1px; background: rgba(255,255,255,0.2);"></div>
-
-                    <button onclick="bulkEmail()" class="btn" style="height: 32px; font-size: 0.75rem; background: #3b82f6; color: white; border: none; padding: 0 1rem; border-radius: 6px; font-weight: 700; display:flex; align-items:center; gap:5px;">
-                        <i class="fas fa-envelope"></i> Bulk Email
-                    </button>
-                    <button onclick="bulkWhatsApp()" class="btn" style="height: 32px; font-size: 0.75rem; background: #25d366; color: white; border: none; padding: 0 1rem; border-radius: 6px; font-weight: 700; display:flex; align-items:center; gap:5px;">
-                        <i class="fab fa-whatsapp"></i> Bulk WhatsApp
-                    </button>
-
-                    <button onclick="clearSelection()"
-                        style="background: transparent; color: rgba(255,255,255,0.5); border: none; cursor: pointer; font-size: 0.9rem; padding: 4px; transition: all 0.2s;"
-                        onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">
-                        <i class="fas fa-times-circle"></i>
-                    </button>
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <span id="selectedCount"
+                        style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">0</span>
+                    <span style="font-size: 0.8125rem; font-weight: 700;">Selected</span>
                 </div>
-            <?php endif; ?>
+
+                <div style="height: 20px; width: 1px; background: rgba(255,255,255,0.2);"></div>
+
+                <button onclick="exportSelectedCustomersXLSX()" class="btn" style="height: 32px; font-size: 0.75rem; background: #10b981; color: white; border: none; padding: 0 1rem; border-radius: 6px; font-weight: 700; display:flex; align-items:center; gap:5px; cursor: pointer;">
+                    <i class="fas fa-file-excel"></i> Export Excel (<span id="bulkExcelCount">0</span>)
+                </button>
+                <button onclick="bulkEmail()" class="btn" style="height: 32px; font-size: 0.75rem; background: #3b82f6; color: white; border: none; padding: 0 1rem; border-radius: 6px; font-weight: 700; display:flex; align-items:center; gap:5px; cursor: pointer;">
+                    <i class="fas fa-envelope"></i> Bulk Email
+                </button>
+                <button onclick="bulkWhatsApp()" class="btn" style="height: 32px; font-size: 0.75rem; background: #25d366; color: white; border: none; padding: 0 1rem; border-radius: 6px; font-weight: 700; display:flex; align-items:center; gap:5px; cursor: pointer;">
+                    <i class="fab fa-whatsapp"></i> Bulk WhatsApp
+                </button>
+
+                <button onclick="clearSelection()"
+                    style="background: transparent; color: rgba(255,255,255,0.5); border: none; cursor: pointer; font-size: 0.9rem; padding: 4px; transition: all 0.2s;"
+                    onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">
+                    <i class="fas fa-times-circle"></i>
+                </button>
+            </div>
 
         </main>
     </div>
@@ -518,7 +522,101 @@ if ($isExecutive) {
 
         function toggleModal(id) {
             const modal = document.getElementById(id);
-            if (modal) modal.classList.toggle('active');
+            if (modal) {
+                if (modal.style.display === 'flex' || modal.classList.contains('active')) {
+                    modal.style.display = 'none';
+                    modal.classList.remove('active');
+                } else {
+                    modal.style.display = 'flex';
+                    modal.classList.add('active');
+                }
+            }
+        }
+
+        function openExportModal() {
+            const selected = document.querySelectorAll('.customer-checkbox:checked');
+            const selectedOpt = document.getElementById('exportScopeSelectedOpt');
+            const selectedCountSpan = document.getElementById('exportModalSelectedCount');
+            const scopeSelect = document.getElementById('exportScope');
+            const filteredOpt = document.getElementById('exportScopeFilteredOpt');
+
+            if (searchQuery && searchQuery.trim() !== '') {
+                if (filteredOpt) filteredOpt.style.display = 'block';
+            } else {
+                if (filteredOpt) filteredOpt.style.display = 'none';
+            }
+
+            if (selected.length > 0) {
+                if (selectedOpt) selectedOpt.style.display = 'block';
+                if (selectedCountSpan) selectedCountSpan.textContent = selected.length;
+                if (scopeSelect) scopeSelect.value = 'selected';
+            } else {
+                if (selectedOpt) selectedOpt.style.display = 'none';
+                if (scopeSelect && scopeSelect.value === 'selected') {
+                    scopeSelect.value = (searchQuery && searchQuery.trim() !== '') ? 'filtered' : 'all';
+                }
+            }
+            handleCustomerExportScopeChange(scopeSelect ? scopeSelect.value : 'all');
+            toggleModal('exportCustomersModal');
+        }
+
+        function handleCustomerExportScopeChange(val) {
+            const monthBox = document.getElementById('exportMonthBox');
+            const customBox = document.getElementById('exportCustomDateBox');
+            if (monthBox) monthBox.style.display = (val === 'month') ? 'grid' : 'none';
+            if (customBox) customBox.style.display = (val === 'custom') ? 'grid' : 'none';
+        }
+
+        function exportSelectedCustomersXLSX() {
+            const selected = Array.from(document.querySelectorAll('.customer-checkbox:checked')).map(cb => cb.value);
+            if (selected.length === 0) {
+                alert('Please select at least one customer to export.');
+                return;
+            }
+            window.location.href = `<?= APP_URL ?>/api/customers.php?action=export_xlsx&scope=selected&ids=${encodeURIComponent(selected.join(','))}`;
+        }
+
+        function executeCustomerExport() {
+            const scope = document.getElementById('exportScope') ? document.getElementById('exportScope').value : 'all';
+            const format = document.getElementById('exportFormat') ? document.getElementById('exportFormat').value : 'xlsx';
+            let url = `<?= APP_URL ?>/api/customers.php?action=export_xlsx&format=${encodeURIComponent(format)}&scope=${encodeURIComponent(scope)}`;
+
+            if (scope === 'selected') {
+                const selected = Array.from(document.querySelectorAll('.customer-checkbox:checked')).map(cb => cb.value);
+                if (selected.length === 0) {
+                    alert('No customers selected. Please select at least one customer.');
+                    return;
+                }
+                url += `&ids=${encodeURIComponent(selected.join(','))}`;
+            } else if (scope === 'filtered') {
+                if (searchQuery) {
+                    url += `&search=${encodeURIComponent(searchQuery)}`;
+                }
+            } else if (scope === 'month') {
+                const month = document.getElementById('exportMonth').value;
+                const year = document.getElementById('exportYear').value;
+                url += `&month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}`;
+            } else if (scope === 'custom') {
+                const start = document.getElementById('exportStartDate').value;
+                const end = document.getElementById('exportEndDate').value;
+                if (start && end) {
+                    url += `&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+                }
+            }
+
+            const btn = document.getElementById('btnExecuteExport');
+            if (btn) {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+                btn.disabled = true;
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                }, 2000);
+            }
+
+            window.location.href = url;
+            toggleModal('exportCustomersModal');
         }
 
         let searchTimer;
@@ -556,14 +654,17 @@ if ($isExecutive) {
             const selected = document.querySelectorAll('.customer-checkbox:checked').length;
             const bar = document.getElementById('bulkActionBar');
             const countSpan = document.getElementById('selectedCount');
+            const excelCountSpan = document.getElementById('bulkExcelCount');
             if (!bar) return;
 
             if (selected > 0) {
-                countSpan.textContent = selected;
+                if (countSpan) countSpan.textContent = selected;
+                if (excelCountSpan) excelCountSpan.textContent = selected;
                 bar.style.display = 'flex';
             } else {
                 bar.style.display = 'none';
-                document.getElementById('selectAllCustomers').checked = false;
+                const selectAll = document.getElementById('selectAllCustomers');
+                if (selectAll) selectAll.checked = false;
             }
         }
 
@@ -594,6 +695,96 @@ if ($isExecutive) {
         // Initialize
         fetchCustomers();
     </script>
+    <!-- Export Customers Modal -->
+    <div id="exportCustomersModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 10000; padding: 1rem;">
+        <div class="modal-content" style="max-width: 440px; width: 100%; padding: 0; border-radius: 14px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden; background: #fff; border: 1px solid var(--border);">
+            <!-- Header -->
+            <div style="padding: 1.15rem 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 36px; height: 36px; border-radius: 8px; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <div>
+                        <h2 style="font-size: 1.05rem; font-weight: 800; margin: 0; color: #0f172a; line-height: 1.2;">Export Customers</h2>
+                        <span style="font-size: 0.75rem; color: #64748b;">Download client directory in Excel (.xlsx) format</span>
+                    </div>
+                </div>
+                <button type="button" onclick="toggleModal('exportCustomersModal')" class="btn-ghost"
+                    style="width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0;">
+                    <i class="fas fa-times" style="font-size: 0.875rem;"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div style="padding: 1.25rem 1.5rem;">
+                <!-- Scope Selection -->
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; margin-bottom: 0.4rem;">
+                        Export Scope
+                    </label>
+                    <select id="exportScope" class="form-input" style="appearance: auto; width: 100%; height: 38px; font-size: 0.8125rem; padding: 0 0.75rem; border-radius: 8px; font-weight: 600; border: 1px solid #e2e8f0;" onchange="handleCustomerExportScopeChange(this.value)">
+                        <option value="all" selected>All Customers (Total <?= number_format($total_customers) ?>)</option>
+                        <option value="filtered" id="exportScopeFilteredOpt" style="display: none;">Current Search Results</option>
+                        <option value="selected" id="exportScopeSelectedOpt" style="display: none;">Selected Customers (<span id="exportModalSelectedCount">0</span> selected)</option>
+                        <option value="month">Registered in Specific Month & Year</option>
+                        <option value="custom">Custom Date Range</option>
+                    </select>
+                </div>
+
+                <!-- Monthly Selector -->
+                <div id="exportMonthBox" style="display: none; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; background: #f8fafc; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <div>
+                        <label style="display: block; font-size: 0.7rem; font-weight: 700; color: #64748b; margin-bottom: 0.3rem;">Month</label>
+                        <select id="exportMonth" class="form-input" style="appearance: auto; width: 100%; height: 34px; font-size: 0.8rem; padding: 0 0.5rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+                            <?php for ($m = 1; $m <= 12; $m++): ?>
+                                <option value="<?= $m ?>" <?= date('n') == $m ? 'selected' : '' ?>><?= date('F', mktime(0, 0, 0, $m, 1)) ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.7rem; font-weight: 700; color: #64748b; margin-bottom: 0.3rem;">Year</label>
+                        <select id="exportYear" class="form-input" style="appearance: auto; width: 100%; height: 34px; font-size: 0.8rem; padding: 0 0.5rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+                            <?php for ($y = date('Y'); $y >= date('Y') - 4; $y--): ?>
+                                <option value="<?= $y ?>" <?= date('Y') == $y ? 'selected' : '' ?>><?= $y ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Custom Date Range -->
+                <div id="exportCustomDateBox" style="display: none; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; background: #f8fafc; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <div>
+                        <label style="display: block; font-size: 0.7rem; font-weight: 700; color: #64748b; margin-bottom: 0.3rem;">From Date</label>
+                        <input type="date" id="exportStartDate" value="<?= date('Y-m-01') ?>" class="form-input" style="width: 100%; height: 34px; font-size: 0.8rem; padding: 0 0.5rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.7rem; font-weight: 700; color: #64748b; margin-bottom: 0.3rem;">To Date</label>
+                        <input type="date" id="exportEndDate" value="<?= date('Y-m-d') ?>" class="form-input" style="width: 100%; height: 34px; font-size: 0.8rem; padding: 0 0.5rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+                    </div>
+                </div>
+
+                <!-- Format Selection -->
+                <div style="margin-bottom: 1.25rem;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; margin-bottom: 0.4rem;">
+                        Export Format
+                    </label>
+                    <select id="exportFormat" class="form-input" style="appearance: auto; width: 100%; height: 38px; font-size: 0.8125rem; padding: 0 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 600;">
+                        <option value="xlsx" selected>Excel Spreadsheet (.xlsx)</option>
+                        <option value="csv">CSV File (.csv)</option>
+                    </select>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end; align-items: center;">
+                    <button type="button" onclick="toggleModal('exportCustomersModal')" class="btn btn-ghost" style="padding: 0.55rem 1.15rem; font-size: 0.8rem; font-weight: 600; border-radius: 6px; border: 1px solid #e2e8f0; background: transparent; cursor: pointer;">Cancel</button>
+                    <button type="button" id="btnExecuteExport" onclick="executeCustomerExport()" class="btn btn-primary" style="background: #10b981; border: 1px solid #10b981; color: white; padding: 0.55rem 1.4rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 700; border-radius: 6px; cursor: pointer;">
+                        <i class="fas fa-file-excel"></i> Download File
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <?php include 'partials/wa_modal.php'; ?>
 </body>
 
